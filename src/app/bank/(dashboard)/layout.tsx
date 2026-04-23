@@ -1,6 +1,5 @@
 'use client';
 
-import BankSidebar from '@/components/bank/BankSidebar';
 import BankHeader from '@/components/bank/BankHeader';
 import { useBankAuthStore } from '@/store/bankAuthStore';
 import { useRouter } from 'next/navigation';
@@ -29,16 +28,13 @@ export default function BankDashboardLayout({
   }
 
   return (
-    <div className="bank-shell">
-      <BankSidebar />
-      <div className="bank-main">
-        <BankHeader />
-        <main className="bank-content">
-          <div className="bank-container">
-            {children}
-          </div>
-        </main>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <BankHeader />
+      <main className="flex-1 p-6 bg-slate-50/50">
+        <div className="max-w-[1200px] mx-auto">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
