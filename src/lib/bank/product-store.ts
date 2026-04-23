@@ -173,6 +173,17 @@ function verifyPassword(password: string, hash: string) {
   return hashPassword(password) === hash;
 }
 
+function getEmbeddedIntegrationConfig() {
+  return {
+    middlewareBaseUrl:
+      process.env.EGS_MIDDLEWARE_BASE_URL ||
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      'https://zatca-universal-portal.vercel.app',
+    middlewareApiKey: process.env.EGS_MIDDLEWARE_API_KEY || '',
+    middlewareBankName: process.env.EGS_MIDDLEWARE_BANK_NAME || '',
+  };
+}
+
 /* ─── Seed ─── */
 
 function buildSeedState(): ProductState {
@@ -192,6 +203,8 @@ function buildSeedState(): ProductState {
     passwordExpiresAt: plusDays(rotationDays),
     createdAt,
   });
+
+  const embedded = getEmbeddedIntegrationConfig();
 
   return {
     organization: {
@@ -220,9 +233,9 @@ function buildSeedState(): ProductState {
       },
     ],
     integration: {
-      middlewareBaseUrl: '',
-      middlewareApiKey: '',
-      middlewareBankName: '',
+      middlewareBaseUrl: embedded.middlewareBaseUrl,
+      middlewareApiKey: embedded.middlewareApiKey,
+      middlewareBankName: embedded.middlewareBankName,
     },
   };
 }
@@ -410,10 +423,11 @@ export async function createUser(
 
 export async function getIntegrationSettings() {
   const state = await readState();
+  const embedded = getEmbeddedIntegrationConfig();
   return {
-    middlewareBaseUrl: state.integration.middlewareBaseUrl,
-    middlewareApiKey: state.integration.middlewareApiKey,
-    middlewareBankName: state.integration.middlewareBankName,
+    middlewareBaseUrl: state.integration.middlewareBaseUrl || embedded.middlewareBaseUrl,
+    middlewareApiKey: state.integration.middlewareApiKey || embedded.middlewareApiKey,
+    middlewareBankName: state.integration.middlewareBankName || embedded.middlewareBankName,
   };
 }
 

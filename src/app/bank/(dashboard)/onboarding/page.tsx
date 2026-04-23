@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBankAuthStore } from '@/store/bankAuthStore';
 import { 
   FileCheck2, Server, ShieldCheck, Globe, CheckCircle2, 
@@ -8,17 +8,107 @@ import {
 } from 'lucide-react';
 
 export default function BankOnboardingPage() {
-  const { sessionToken, integrationConfigured } = useBankAuthStore();
+  const { sessionToken, integrationConfigured, role } = useBankAuthStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [otp, setOtp] = useState('');
 
-  const simulateStep = async (nextStep: number) => {
+  const loadStatus = async () => {
+    if (!sessionToken) return;
     setLoading(true);
-    // Simulation of API calls
-    await new Promise(r => setTimeout(r, 1500));
-    setStep(nextStep);
-    setLoading(false);
+    setStatus(null);
+    try {
+      const res = await fetch('/api/bank/product/onboarding/status', {
+        headers: { 'x-session-token': sessionToken },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus(data?.error || 'Failed to load onboarding status.');
+        return;
+      }
+      if (!data?.connected) {
+        setStep(1);
+        return;
+      }
+      if (data?.onboarding?.isLive) setStep(4);
+      else if (data?.onboarding?.hasComplianceCSID) setStep(3);
+      else setStep(2);
+      setStatus(`Connected to middleware${data?.organization ? `: ${data.organization}` : ''}`);
+    } catch (e: any) {
+      setStatus(e?.message || 'Could not reach middleware.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateCSR = async () => {
+    if (!sessionToken) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const res = await fetch('/api/bank/product/onboarding/csr', {
+        method: 'POST',
+        headers: {
+          'x-session-token': sessionToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ otp }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setStatus(data?.error || 'Failed to generate compliance CSID.');
+        return;
+      }
+      setStatus('Compliance CSID generated successfully.');
+      setStep(3);
+    } catch (e: any) {
+      setStatus(e?.message || 'CSR generation failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const activateProduction = async () => {
+    if (!sessionToken) return;
+    setLoading(true);
+    setStatus(null);
+    try {
+      const verifyRes = await fetch('/api/bank/product/onboarding/verify', {
+        method: 'POST',
+        headers: {
+          'x-session-token': sessionToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok) {
+        setStatus(verifyData?.error || 'Compliance verification failed.');
+        return;
+      }
+
+      const prodRes = await fetch('/api/bank/product/onboarding/production', {
+        method: 'POST',
+        headers: {
+          'x-session-token': sessionToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const prodData = await prodRes.json().catch(() => ({}));
+      if (!prodRes.ok) {
+        setStatus(prodData?.error || 'Production activation failed.');
+        return;
+      }
+
+      setStatus('Production CSID activated. Your bank is live.');
+      setStep(4);
+    } catch (e: any) {
+      setStatus(e?.message || 'Production activation failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const steps = [
@@ -27,6 +117,12 @@ export default function BankOnboardingPage() {
     { title: 'Compliance Test', desc: 'Verify ZATCA business rule alignment', icon: ShieldCheck },
     { title: 'Production Live', desc: 'Activate production certificates', icon: Zap }
   ];
+
+  useEffect(() => {
+    if (integrationConfigured && sessionToken) {
+      void loadStatus();
+    }
+  }, [integrationConfigured, sessionToken]);
 
   return (
     <div className="animate-pro max-w-3xl mx-auto">
@@ -61,6 +157,12 @@ export default function BankOnboardingPage() {
       </div>
 
       <div className="card-pro p-10 text-center border-blue-100/50 bg-gradient-to-b from-blue-50/20 to-white">
+        {!!status && (
+          <div className="mb-6 text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-100 rounded-xl p-3">
+            {status}
+          </div>
+        )}
+
         {step === 1 && (
           <div className="space-y-6 max-w-sm mx-auto">
              <div className="w-16 h-16 rounded-3xl bg-blue-100 flex items-center justify-center text-blue-600 mx-auto shadow-sm">
@@ -78,12 +180,12 @@ export default function BankOnboardingPage() {
                   </div>
                 ) : 'Missing API Key in Settings.'}
              </div>
-             <button 
+             <button
                className="btn-pro w-full h-10 flex items-center justify-center gap-2" 
                disabled={!integrationConfigured || loading}
-               onClick={() => simulateStep(2)}
+               onClick={loadStatus}
              >
-               {loading ? 'Verifying...' : 'Initialize Onboarding'}
+               {loading ? 'Checking...' : 'Initialize Onboarding'}
                <ArrowRight size={14} />
              </button>
           </div>
@@ -96,13 +198,18 @@ export default function BankOnboardingPage() {
              </div>
              <div>
                 <h2 className="text-xl font-black text-gray-900 tracking-tight">Key Generation</h2>
-                <p className="text-small mt-2">Requesting the Middleware engine to generate CSR and private keys for this branch.</p>
+                <p className="text-small mt-2">Provide FATOORA OTP and request compliance CSID from middleware.</p>
              </div>
-             <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 text-left font-mono text-[9px] text-gray-400 max-h-24 overflow-hidden mask-fade-bottom">
-               -----BEGIN CERTIFICATE REQUEST-----<br/>
-               MIIC3DCCAcQCAQAwZDELMAkGA1UEBhMCU0ExEDAOBgNVBAgMB1JpeWFkaD...
+             <div className="text-left">
+               <label className="bank-form-label text-[10px] font-black uppercase">FATOORA OTP</label>
+               <input
+                 className="input-pro mt-1"
+                 placeholder="Enter OTP from FATOORA portal"
+                 value={otp}
+                 onChange={(e) => setOtp(e.target.value)}
+               />
              </div>
-             <button className="btn-pro w-full h-10" onClick={() => simulateStep(3)} disabled={loading}>
+             <button className="btn-pro w-full h-10" onClick={generateCSR} disabled={role !== 'Admin' || loading || otp.length < 4}>
                {loading ? 'Generating...' : 'Submit CSR to ZATCA'}
              </button>
           </div>
@@ -125,7 +232,7 @@ export default function BankOnboardingPage() {
                   </div>
                 ))}
              </div>
-             <button className="btn-pro w-full h-10 mt-4" onClick={() => simulateStep(4)} disabled={loading}>
+             <button className="btn-pro w-full h-10 mt-4" onClick={activateProduction} disabled={role !== 'Admin' || loading}>
                {loading ? 'Evaluating...' : 'Request Production ID'}
              </button>
           </div>

@@ -7,14 +7,16 @@ import { Settings, Globe, Shield, Activity, HelpCircle, Save } from 'lucide-reac
 export default function BankSettingsPage() {
   const { sessionToken, role, setIntegrationConfigured } = useBankAuthStore();
   const [form, setForm] = useState({
-    middlewareBaseUrl: 'http://localhost:3000',
+    middlewareBaseUrl: 'https://zatca-universal-portal.vercel.app',
     middlewareApiKey: '',
     middlewareBankName: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionToken || role !== 'Admin') return;
@@ -28,6 +30,10 @@ export default function BankSettingsPage() {
 
   const onSave = async () => {
     if (!sessionToken) return;
+    if (!form.middlewareBaseUrl.trim() || !form.middlewareApiKey.trim() || !form.middlewareBankName.trim()) {
+      setError('Middleware URL, API key and Bank name are required.');
+      return;
+    }
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -44,6 +50,42 @@ export default function BankSettingsPage() {
       setError(e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onTestConnection = async () => {
+    if (!sessionToken) return;
+    if (!form.middlewareBaseUrl.trim() || !form.middlewareApiKey.trim()) {
+      setError('Middleware URL and API key are required to test connection.');
+      return;
+    }
+    setTesting(true);
+    setError(null);
+    setSuccess(null);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/bank/product/settings/test', {
+        method: 'POST',
+        headers: { 'x-session-token': sessionToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          middlewareBaseUrl: form.middlewareBaseUrl.trim(),
+          middlewareApiKey: form.middlewareApiKey.trim(),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.error || 'Connection test failed.');
+        return;
+      }
+      if (!data?.ok) {
+        setTestResult(`Connection failed (${data?.status || 'N/A'}): ${data?.error || 'Unknown error'}`);
+        return;
+      }
+      setTestResult(`Connected (${data?.status}). Organization: ${data?.organization || 'Detected'}`);
+    } catch (e: any) {
+      setError(e?.message || 'Connection test failed.');
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -96,9 +138,17 @@ export default function BankSettingsPage() {
 
                 {error && <div className="bank-alert-error text-[11px] font-bold py-2">{error}</div>}
                 {success && <div className="bank-alert-success text-[11px] font-bold py-2">{success}</div>}
+                {testResult && <div className="bank-alert-success text-[11px] font-bold py-2">{testResult}</div>}
 
                 <div className="pt-4 flex items-center gap-3">
-                   <button onClick={onSave} className="btn-pro h-10 px-8 flex items-center gap-2" disabled={saving}>
+                   <button
+                     onClick={onTestConnection}
+                     className="h-10 px-5 rounded-xl border border-gray-200 bg-white text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-all"
+                     disabled={saving || testing}
+                   >
+                      {testing ? 'Testing...' : 'Test Connection'}
+                   </button>
+                   <button onClick={onSave} className="btn-pro h-10 px-8 flex items-center gap-2" disabled={saving || testing}>
                       <Save size={16} />
                       {saving ? 'Saving...' : 'Sync Configuration'}
                    </button>
