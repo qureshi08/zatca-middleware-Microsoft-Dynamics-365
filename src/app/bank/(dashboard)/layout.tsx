@@ -37,7 +37,7 @@ export default function BankDashboardLayout({
           <div className="max-w-[1200px] mx-auto">
             {children}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
