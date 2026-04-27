@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     const session = await requireSession(req);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const integration = await getIntegrationSettings();
+    const integration = await getIntegrationSettings(session.user.organizationId);
     if (!integration.middlewareApiKey) {
       return NextResponse.json({
         connected: false,

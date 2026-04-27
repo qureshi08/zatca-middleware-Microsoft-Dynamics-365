@@ -29,6 +29,7 @@ export default function BankOnboardingPage() {
       }
       if (!data?.connected) {
         setStep(1);
+        setStatus('Middleware configuration invalid or unreachable. Please check your API key in Settings.');
         return;
       }
       if (data?.onboarding?.isLive) setStep(4);

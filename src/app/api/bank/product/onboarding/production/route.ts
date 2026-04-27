@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const session = await requireSession(req, ['Admin']);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const integration = await getIntegrationSettings();
+    const integration = await getIntegrationSettings(session.user.organizationId);
     if (!integration.middlewareApiKey) {
       return NextResponse.json({ error: 'Configure middleware API key first' }, { status: 400 });
     }
