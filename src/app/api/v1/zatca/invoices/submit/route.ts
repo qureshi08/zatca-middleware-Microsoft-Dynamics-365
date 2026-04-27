@@ -55,7 +55,10 @@ export async function POST(req: NextRequest) {
             invoice_number: body.invoiceId,
             invoice_hash: result.success ? (result.data?.hash || result.data?.uuid) : null,
             status: result.success ? 'success' : 'failure',
-            response_payload: result
+            response_payload: {
+                ...result,
+                body: body // Store original request for dashboard SAR/VAT calculation
+            }
         });
 
         if (logError) {
