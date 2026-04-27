@@ -62,6 +62,41 @@ export async function POST(req: NextRequest) {
             console.error(`[ZATCA-DB-LOG] CRITICAL ERROR for ${body.invoiceId}:`, logError.message);
         }
 
+        // 5. Persist to invoices table so middleware dashboard can display it
+        if (result.success && result.data) {
+            const invoiceStatus = result.data.status === 'CLEARED' ? 'cleared' : 
+                                  result.data.status === 'REPORTED' ? 'reported' : 'cleared';
+            
+            // Calculate totals from items
+            const items = body.items || [];
+            const subtotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice), 0);
+            const vatTotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice * (item.vatRate || 15) / 100), 0);
+
+            const { error: invoiceError } = await supabaseAdmin.from('invoices').insert({
+                organization_id: organization.id,
+                invoice_number: body.invoiceId,
+                invoice_type: body.type,
+                document_type: body.documentType || '388',
+                status: invoiceStatus,
+                total_amount: subtotal + vatTotal,
+                payload: {
+                    ...body,
+                    total: subtotal + vatTotal,
+                    vatAmount: vatTotal,
+                    subtotal,
+                    uuid: result.data.uuid,
+                    hash: result.data.hash,
+                    zatcaStatus: result.data.status,
+                    qrCode: result.data.qrCode,
+                    xml: result.data.xml,
+                },
+            });
+
+            if (invoiceError) {
+                console.error(`[ZATCA-INVOICE-PERSIST] Error for ${body.invoiceId}:`, invoiceError.message);
+            }
+        }
+
         if (!result.success) {
             return NextResponse.json({
                 success: false,
