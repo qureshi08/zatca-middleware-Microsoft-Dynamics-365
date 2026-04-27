@@ -35,7 +35,11 @@ export async function GET(req: NextRequest) {
         if (transactionError) throw transactionError;
 
         // 3. Calculate metrics — both 'cleared' and 'reported' are successful ZATCA submissions
-        const clearedInvoices = invoices?.filter(inv => ['cleared', 'reported'].includes(inv.status)) || [];
+        const clearedInvoices = invoices?.filter(inv => {
+            const s = (inv.status || '').toLowerCase();
+            const zs = (inv.zatca_status || '').toUpperCase();
+            return ['cleared', 'reported', 'warning'].includes(s) || ['CLEARED', 'REPORTED', 'WARNING'].includes(zs);
+        }) || [];
         const submittedCount = transactions?.length || 0;
         const clearedCount = clearedInvoices.length;
         const totalCount = submittedCount; // Total submitted from bank app
