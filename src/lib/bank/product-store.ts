@@ -153,6 +153,15 @@ export interface ProductState {
 
 /* ─── Helpers ─── */
 
+function normalizeRole(value: unknown): Role {
+  const role = String(value || '').trim().toLowerCase();
+  if (role === 'maker') return 'Maker';
+  if (role === 'checker') return 'Checker';
+  if (role === 'approver') return 'Approver';
+  if (role === 'auditor') return 'Auditor';
+  return 'Admin';
+}
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -394,7 +403,7 @@ export async function authenticateAndCreateSession(email: string, password: stri
       organizationId: bankUser.organization_id,
       fullName: bankUser.full_name || bankUser.email,
       email: bankUser.email,
-      role: (bankUser.role || 'Admin') as Role,
+      role: normalizeRole(bankUser.role),
       status: 'active',
       passwordHash: bankUser.password_hash,
       passwordHistory: [],
@@ -418,7 +427,7 @@ export async function authenticateAndCreateSession(email: string, password: stri
         id: user.id,
         fullName: user.fullName,
         email: user.email,
-        role: user.role,
+          role: normalizeRole(user.role),
         passwordExpiresAt: user.passwordExpiresAt,
       },
       organization: {
@@ -509,7 +518,7 @@ export async function getSessionUser(sessionToken: string) {
         organizationId: userRow.organization_id,
         fullName: userRow.full_name || userRow.email,
         email: userRow.email,
-        role: (userRow.role || tokenPayload.role || 'Admin') as Role,
+        role: normalizeRole(userRow.role || tokenPayload.role || 'Admin'),
         status: 'active',
         passwordHash: userRow.password_hash || '',
         passwordHistory: [],
@@ -595,7 +604,24 @@ export async function changePassword(userId: string, currentPassword: string, ne
 
 /* ─── Users ─── */
 
-export async function listUsers() {
+export async function listUsers(organizationId?: string) {
+  if (organizationId) {
+    const { data } = await supabaseAdmin
+      .from('bank_users')
+      .select('id, full_name, email, role, user_status, password_expires_at, created_at')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      fullName: u.full_name,
+      email: u.email,
+      role: normalizeRole(u.role),
+      status: u.user_status || 'active',
+      passwordExpiresAt: u.password_expires_at || null,
+      createdAt: u.created_at,
+    }));
+  }
+
   const state = await readState();
   return state.users.map((u) => ({
     id: u.id,
@@ -612,6 +638,39 @@ export async function createUser(
   actor: ProductUser,
   input: { fullName: string; email: string; role: Role; password: string }
 ) {
+  if (actor.organizationId) {
+    const passwordHash = hashPassword(input.password);
+    const now = nowIso();
+    const { data, error } = await supabaseAdmin
+      .from('bank_users')
+      .insert({
+        organization_id: actor.organizationId,
+        full_name: input.fullName,
+        email: input.email.toLowerCase(),
+        password_hash: passwordHash,
+        role: normalizeRole(input.role),
+        user_status: 'active',
+        password_history: [passwordHash],
+        password_changed_at: now,
+        password_expires_at: plusDays(14),
+      })
+      .select('id, full_name, email, role, user_status, password_expires_at, created_at')
+      .single();
+    if (error) return { success: false as const, error: error.message };
+    return {
+      success: true as const,
+      user: {
+        id: data.id,
+        fullName: data.full_name,
+        email: data.email,
+        role: normalizeRole(data.role),
+        status: data.user_status || 'active',
+        passwordExpiresAt: data.password_expires_at || null,
+        createdAt: data.created_at,
+      },
+    };
+  }
+
   return mutateState((state) => {
     if (state.users.some((u) => u.email.toLowerCase() === input.email.toLowerCase())) {
       return { success: false as const, error: 'User email already exists' };

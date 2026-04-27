@@ -8,6 +8,7 @@ import { Settings, Globe, Shield, Activity, HelpCircle, Save } from 'lucide-reac
 export default function BankSettingsPage() {
   const router = useRouter();
   const { sessionToken, role, setIntegrationConfigured, logout } = useBankAuthStore();
+  const [suggestedKey, setSuggestedKey] = useState<string>('');
   const [form, setForm] = useState({
     middlewareBaseUrl: 'https://zatca-universal-portal.vercel.app',
     middlewareApiKey: '',
@@ -28,6 +29,20 @@ export default function BankSettingsPage() {
         if (data.integration) setForm(data.integration);
       })
       .finally(() => setLoading(false));
+  }, [sessionToken, role]);
+
+  useEffect(() => {
+    if (!sessionToken || role !== 'Admin') return;
+    fetch('/api/bank/auth/me', { headers: { 'x-session-token': sessionToken } })
+      .then(res => res.json())
+      .then(data => {
+        const orgId = data?.organization?.id;
+        if (orgId && typeof orgId === 'string') {
+          const snippet = orgId.replace(/-/g, '').slice(0, 32);
+          setSuggestedKey(`sk_zatca_live_${snippet}`);
+        }
+      })
+      .catch(() => undefined);
   }, [sessionToken, role]);
 
   const onSave = async () => {
@@ -150,6 +165,18 @@ export default function BankSettingsPage() {
                     <Shield size={14} className="absolute left-3 top-2.5 text-blue-300" />
                     <input type="password" className="input-pro pl-9 bg-gray-50/50" value={form.middlewareApiKey} onChange={e => setForm(f => ({ ...f, middlewareApiKey: e.target.value }))} placeholder="sk_test_..." />
                   </div>
+                  {suggestedKey && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="h-8 px-3 rounded-lg border border-blue-200 bg-blue-50 text-[10px] font-black text-blue-700 uppercase tracking-wide hover:bg-blue-100 transition-colors"
+                        onClick={() => setForm(f => ({ ...f, middlewareApiKey: suggestedKey }))}
+                      >
+                        Use My Bank Key
+                      </button>
+                      <code className="text-[10px] text-gray-500">{suggestedKey}</code>
+                    </div>
+                  )}
                   <p className="text-[9px] text-gray-400 mt-1">Obtain this key from the Middleware Admin Dashboard section.</p>
                 </div>
 

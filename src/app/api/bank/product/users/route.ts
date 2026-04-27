@@ -4,7 +4,7 @@ import { requireSession, listUsers, createUser } from '@/lib/bank/product-store'
 export async function GET(req: NextRequest) {
   const session = await requireSession(req, ['Admin']);
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const users = await listUsers();
+  const users = await listUsers(session.organization.id);
   return NextResponse.json({ users });
 }
 
