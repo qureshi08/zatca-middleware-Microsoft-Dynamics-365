@@ -51,8 +51,15 @@ function LoginContent() {
             setActiveBank(data.organization);
             if (data.apiKey) setApiKey(data.apiKey);
 
-            // 2. Redirect to Dashboard
-            router.push('/');
+            // 2. Honor ?next= if present and safe (must be an internal absolute path).
+            const requestedNext = searchParams.get('next');
+            const safeNext =
+                requestedNext &&
+                requestedNext.startsWith('/') &&
+                !requestedNext.startsWith('//')
+                    ? requestedNext
+                    : '/';
+            router.push(safeNext);
         } catch (err: any) {
             setError(err.message);
         } finally {

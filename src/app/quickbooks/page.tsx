@@ -28,7 +28,7 @@ export default function QuickbooksLandingPage() {
 
     useEffect(() => {
         if (!isLoading && activeBank) {
-            router.replace('/admin/quickbooks/settings');
+            router.replace('/quickbooks/setup');
         }
     }, [isLoading, activeBank, router]);
 
@@ -61,7 +61,7 @@ export default function QuickbooksLandingPage() {
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
                         <Link
-                            href="/login?next=/admin/quickbooks/settings"
+                            href="/login?next=/quickbooks/setup"
                             className="h-12 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[13px] shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 flex-1"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -127,7 +127,7 @@ export default function QuickbooksLandingPage() {
                                     credentials or check sync status, sign in and head to settings.
                                 </p>
                                 <Link
-                                    href="/login?next=/admin/quickbooks/settings"
+                                    href="/login?next=/quickbooks/setup"
                                     className="text-[12px] font-bold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
                                 >
                                     Go to QuickBooks settings →
