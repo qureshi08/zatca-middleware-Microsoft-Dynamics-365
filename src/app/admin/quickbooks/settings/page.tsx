@@ -13,11 +13,27 @@ function QuickbooksSettingsContent() {
   const [realmId, setRealmId] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [redirectUri, setRedirectUri] = useState<string>('');
+  const [copied, setCopied] = useState(false);
   const orgId = activeBank?.id ?? null;
 
   const searchParams = useSearchParams();
   const [msg, setMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setRedirectUri(`${window.location.origin}/api/quickbooks/oauth/callback`);
+    }
+  }, []);
+
+  const copyRedirectUri = async () => {
+    try {
+      await navigator.clipboard.writeText(redirectUri);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* ignore */ }
+  };
 
   // 1. Initial Load: Fetch existing config from DB for the active institutional node
   useEffect(() => {
@@ -108,9 +124,11 @@ function QuickbooksSettingsContent() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
             <Settings className="text-blue-600" size={32} />
-            Enterprise QuickBooks Integration
+            QuickBooks Integration
           </h1>
-          <p className="text-slate-500 mt-2">Connect your QuickBooks Online account to synchronize invoices with ZATCA.</p>
+          <p className="text-slate-500 mt-2">
+            Connect <span className="font-bold text-slate-700">{activeBank?.name || '—'}</span> to QuickBooks Online so invoices flow straight to ZATCA.
+          </p>
         </div>
         {isConnected ? (
           <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full border border-green-200 font-medium">
@@ -120,9 +138,32 @@ function QuickbooksSettingsContent() {
         ) : (
           <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-full border border-slate-200 font-medium">
             <XCircle size={18} />
-            Disconnected
+            Not Connected
           </div>
         )}
+      </div>
+
+      {/* Redirect URI banner — must be whitelisted in Intuit Developer Portal */}
+      <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5">
+        <div className="flex items-start gap-3 mb-3">
+          <Info size={18} className="text-blue-600 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[13px] font-extrabold text-blue-900 mb-1">Whitelist this Redirect URI in Intuit</h3>
+            <p className="text-[12px] text-blue-700 leading-relaxed">
+              Paste this exact URL into your Intuit app's "Redirect URIs" list at <span className="font-mono">developer.intuit.com</span>.
+              Without this, the OAuth handshake will fail with <span className="font-mono">redirect_uri_mismatch</span>.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-white border border-blue-200 rounded-xl p-2.5">
+          <code className="flex-1 font-mono text-[12px] text-slate-700 truncate select-all">{redirectUri || 'Loading…'}</code>
+          <button
+            onClick={copyRedirectUri}
+            className="shrink-0 px-3 h-8 text-[11px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all"
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -201,9 +242,15 @@ function QuickbooksSettingsContent() {
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-slate-100">
-              <span className="text-slate-500">Last Sync</span>
+              <span className="text-slate-500">Token Valid Until</span>
               <span className="text-slate-700 font-medium">
-                {expiresAt ? new Date(expiresAt).toLocaleDateString() : 'Never'}
+                {expiresAt ? new Date(expiresAt).toLocaleString() : '—'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-slate-100">
+              <span className="text-slate-500">Realm ID</span>
+              <span className="text-slate-700 font-mono text-[11px]">
+                {realmId || '—'}
               </span>
             </div>
             <div className="bg-blue-100/50 p-3 rounded-xl flex gap-3">
@@ -231,18 +278,18 @@ function QuickbooksSettingsContent() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold">1</div>
-                <h4 className="font-semibold">Developer Portal</h4>
-                <p className="text-[12px] text-slate-400">Create an app at developer.intuit.com and copy your Client Keys.</p>
+                <h4 className="font-semibold">Create an Intuit App</h4>
+                <p className="text-[12px] text-slate-400">Go to <span className="font-mono">developer.intuit.com</span>, create an app, and copy its Client ID + Client Secret.</p>
             </div>
             <div className="space-y-2">
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold">2</div>
-                <h4 className="font-semibold">Whitelist URL</h4>
-                <p className="text-[12px] text-slate-400">Add the Redirect URI to your Intuit App settings to allow the handshake.</p>
+                <h4 className="font-semibold">Whitelist the Redirect URI</h4>
+                <p className="text-[12px] text-slate-400">Add the URI shown above to your Intuit app's Redirect URIs list. Must match exactly.</p>
             </div>
             <div className="space-y-2">
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold">3</div>
-                <h4 className="font-semibold">Connect</h4>
-                <p className="text-[12px] text-slate-400">Paste the keys here and click Connect. Your invoices will start syncing.</p>
+                <h4 className="font-semibold">Connect &amp; Authorize</h4>
+                <p className="text-[12px] text-slate-400">Paste the keys on this page and click Connect. Sign in with your QuickBooks Company and approve access.</p>
             </div>
         </div>
       </div>
