@@ -4,9 +4,12 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { generateInvoicePDF } from '@/lib/pdf-generator';
 import { reportInvoiceAction } from '@/lib/zatca/actions';
+import { useApp } from '@/context/AppContext';
 
 export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
+    const { activeBank } = useApp();
+    const sellerName = activeBank?.name || 'Issuing Bank';
     const [invoice, setInvoice] = useState<any>(null);
     const [exporting, setExporting] = useState(false);
     const [reporting, setReporting] = useState(false);
@@ -176,9 +179,9 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                                 <div style={{ background: 'var(--boj-navy)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
                                                     <span style={{ color: 'white', fontWeight: '900', fontSize: '22px' }}>B</span>
                                                 </div>
-                                                <h1 style={{ fontSize: '1.4rem', color: 'var(--boj-navy)', marginBottom: '0.2rem' }}>Bank of Jordan</h1>
+                                                <h1 style={{ fontSize: '1.4rem', color: 'var(--boj-navy)', marginBottom: '0.2rem' }}>{sellerName}</h1>
                                                 <p style={{ fontSize: '10px', color: '#64748B' }}>Corporate Finance & Settlement</p>
-                                                <p style={{ fontSize: '10px', fontWeight: '800', marginTop: '0.5rem' }}>VAT: 300000000000003</p>
+                                                <p style={{ fontSize: '10px', fontWeight: '800', marginTop: '0.5rem' }}>VAT: {activeBank?.vat_number || '—'}</p>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <h2 style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--boj-navy)', marginBottom: '0.5rem' }}>
@@ -219,9 +222,9 @@ export default function InvoiceDetailsPage({ params }: { params: Promise<{ id: s
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', padding: '1.5rem 0', borderTop: '2px solid var(--border)', borderBottom: '2px solid var(--border)', marginBottom: '3rem' }}>
                                             <div>
                                                 <h4 style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.75rem', letterSpacing: '0.5px', fontWeight: 600 }}>Seller</h4>
-                                                <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: 'var(--text-primary)' }}>Bank of Jordan</p>
-                                                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>1234 King Fahd Road, Al Olaya</p>
-                                                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Riyadh, Saudi Arabia</p>
+                                                <p style={{ fontSize: '12px', fontWeight: '700', marginBottom: '4px', color: 'var(--text-primary)' }}>{sellerName}</p>
+                                                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Registered Address</p>
+                                                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Saudi Arabia</p>
                                             </div>
                                             <div>
                                                 <h4 style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--primary)', marginBottom: '0.75rem', letterSpacing: '0.5px', fontWeight: 600 }}>Buyer</h4>

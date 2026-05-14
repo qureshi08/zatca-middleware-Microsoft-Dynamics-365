@@ -36,7 +36,7 @@ export default function BankLoginPage() {
       }
       setAuth({
         sessionToken: data.sessionToken,
-        bankName: data.organization?.name || 'Z3C Bank Demo',
+        bankName: data.organization?.name || 'Bank CBS Demo',
         role: data.user.role,
         userName: data.user.fullName,
         email: data.user.email,
@@ -58,7 +58,7 @@ export default function BankLoginPage() {
           <div className="bank-login-logo">
             <span>Z3</span>
           </div>
-          <h1 className="bank-login-title">Z3C Bank Product</h1>
+          <h1 className="bank-login-title">Bank CBS Demo</h1>
           <p className="bank-login-subtitle">Middleware Integration Demo</p>
         </div>
 

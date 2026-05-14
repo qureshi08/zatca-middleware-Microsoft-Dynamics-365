@@ -91,7 +91,7 @@ export default function Sidebar({ mode: _unused }: { mode: string }) {
             <div className="mb-10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-[13px] text-white font-black shadow-lg shadow-blue-500/20">Z</div>
-                    <span className="text-[16px] font-extrabold tracking-tight text-black">Z3C<span className="text-gray-400">.</span>HUB</span>
+                    <span className="text-[16px] font-extrabold tracking-tight text-black">ZATCA<span className="text-gray-400">.</span>Middleware</span>
                 </div>
                 {user && (
                     <button onClick={handleLogout} className="text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase">Logout</button>

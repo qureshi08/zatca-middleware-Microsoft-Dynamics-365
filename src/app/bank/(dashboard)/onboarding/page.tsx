@@ -259,7 +259,7 @@ export default function BankOnboardingPage() {
       </div>
 
       <p className="text-center text-[9px] text-gray-300 font-black uppercase tracking-[0.2em] mt-10">
-        Demo Flow · Powered by Z3C Nexus Engine
+        Demo Flow · Bank CBS → ZATCA Middleware
       </p>
     </div>
   );

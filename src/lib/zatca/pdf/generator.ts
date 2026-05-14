@@ -142,7 +142,7 @@ export async function generateInvoicePDF(data: PDFInput): Promise<Buffer> {
         doc.setFontSize(7);
         doc.setTextColor(180);
         doc.text(`UUID: ${data.invoice.id} | Hash: ${data.hash || 'N/A'}`, m, 280);
-        doc.text('Certified Electronic Invoice (Bank of Jordan Middleware Node)', m, 284);
+        doc.text('Certified Electronic Invoice (ZATCA Middleware Node)', m, 284);
 
         return Buffer.from(doc.output('arraybuffer'));
     } catch (fullError: any) {

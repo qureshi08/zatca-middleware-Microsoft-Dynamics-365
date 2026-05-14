@@ -64,7 +64,7 @@ export default function DashboardPage() {
             <div className="card-pro p-10 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-8">🏗️</div>
               <h1 className="h1 mb-2">Initialize Your Cluster</h1>
-              <p className="body-text text-sm max-w-md mx-auto mb-8">Welcome to Z3C Nexus. Your regional node is active but no bank identities have been provisioned yet.</p>
+              <p className="body-text text-sm max-w-md mx-auto mb-8">Welcome to the ZATCA Middleware. Your node is active but no bank identities have been provisioned yet.</p>
 
               <Link href="/admin" className="btn-pro h-12 px-10 bg-blue-600 hover:scale-105 transition-transform shadow-2xl shadow-blue-500/20">
                 Configure First Node

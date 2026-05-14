@@ -139,7 +139,7 @@ export default function LogsPage() {
             </main>
 
             <footer className="max-w-7xl mx-auto mt-12 text-center text-gray-600 text-[10px] tracking-[0.2em] uppercase">
-                Bank of Jordan | ZATCA Audit System v2.1.0-SIM
+                ZATCA Middleware · Audit System v2.1.0
             </footer>
 
             <style jsx global>{`

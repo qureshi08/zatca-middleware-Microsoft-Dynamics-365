@@ -141,7 +141,7 @@ export default function BankSettingsPage() {
           <Settings size={28} className="text-blue-600" />
           Technical Configuration
         </h1>
-        <p className="text-small">Configure how this bank portal communicates with the Z3C Compliance Middleware.</p>
+        <p className="text-small">Configure how this bank portal communicates with the ZATCA Middleware.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -182,7 +182,7 @@ export default function BankSettingsPage() {
 
                 <div className="bank-form-group">
                   <label className="bank-form-label text-[10px] font-black uppercase">Registered Legal Entity Name</label>
-                  <input className="input-pro bg-gray-50/50" value={form.middlewareBankName} onChange={e => setForm(f => ({ ...f, middlewareBankName: e.target.value }))} placeholder="e.g. Z3C National Bank" />
+                  <input className="input-pro bg-gray-50/50" value={form.middlewareBankName} onChange={e => setForm(f => ({ ...f, middlewareBankName: e.target.value }))} placeholder="e.g. National Bank" />
                 </div>
 
                 {error && <div className="bank-alert-error text-[11px] font-bold py-2">{error}</div>}
@@ -226,7 +226,7 @@ export default function BankSettingsPage() {
               <div className="p-3 rounded-xl bg-gray-800/50 border border-gray-700/50 space-y-3 font-mono text-[9px]">
                  <div>
                     <span className="text-gray-500 text-[8px] uppercase block mb-0.5">Deployment ID</span>
-                    <span className="text-blue-300">Z3C-NEX-0X-DEMO</span>
+                    <span className="text-blue-300">CBS-DEMO-0X</span>
                  </div>
                  <div>
                     <span className="text-gray-500 text-[8px] uppercase block mb-0.5">Database Link</span>

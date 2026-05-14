@@ -92,14 +92,14 @@ export default function BankSidebar() {
       <div className="bank-sidebar-header">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-[12px] font-black shadow-lg shadow-blue-600/20">
-            Z3
+            CB
           </div>
           <div>
             <span className="text-[14px] font-extrabold tracking-tight text-white">
-              Z3C<span className="text-blue-400">.</span>Bank
+              Bank<span className="text-blue-400">.</span>CBS
             </span>
             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest -mt-0.5">
-              Product Demo
+              Core Banking Demo
             </p>
           </div>
         </div>

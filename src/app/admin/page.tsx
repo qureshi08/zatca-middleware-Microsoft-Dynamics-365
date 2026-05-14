@@ -152,7 +152,7 @@ export default function AdminPage() {
                         {/* Registry View */}
                         <div className="space-y-6">
                             <h2 className="h2 mb-4">Platform Registry</h2>
-                            <p className="small-text mb-10 text-gray-400">A managed audit journal of active bank identities currently connected to the Z3C Institutional Bridge.</p>
+                            <p className="small-text mb-10 text-gray-400">A managed audit journal of active bank identities currently connected to the ZATCA Middleware.</p>
 
                             <div className="card bg-white border-none p-0 overflow-hidden shadow-2xl">
                                 <table className="w-full text-left">

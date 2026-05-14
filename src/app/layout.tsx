@@ -5,8 +5,8 @@ import { AppProvider } from '@/context/AppContext';
 import { getOnboardingStatus } from '@/lib/zatca/onboarding-storage';
 
 export const metadata: Metadata = {
-  title: 'Z3C Compliance Platform | Bank of Jordan – ZATCA Phase 2',
-  description: 'Bank of Jordan ZATCA Phase 2 E-Invoicing Integration & Compliance Platform',
+  title: 'ZATCA Middleware – Phase 2 E-Invoicing Platform',
+  description: 'ZATCA Phase 2 e-invoicing middleware. Any registered bank can onboard, sign, clear, and report invoices through a unified API.',
   icons: { icon: '/favicon.ico' },
 };
 

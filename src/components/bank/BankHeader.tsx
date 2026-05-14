@@ -12,8 +12,8 @@ export default function BankHeader() {
   return (
     <header className="bank-header">
       <div className="flex items-center gap-2">
-        <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Z3C Product Portal</h2>
-        <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-widest">Bank Demo</span>
+        <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Bank CBS Demo</h2>
+        <span className="text-[9px] font-bold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-widest">Core Banking</span>
       </div>
 
       <div className="flex items-center gap-3">
