@@ -136,16 +136,30 @@ export default function Sidebar({ mode: _unused }: { mode: string }) {
                     </nav>
                 </>
             ) : (
-                <div className="flex-1 flex flex-col justify-center gap-6">
-                    <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 text-center">
-                        <h3 className="text-sm font-bold text-blue-800 mb-2">Institutional Access</h3>
-                        <p className="text-[11px] text-blue-600 mb-6 leading-relaxed">Sign in with your bank credentials to manage your node registry.</p>
-                        <Link href="/login" className="block w-full h-10 bg-blue-600 text-white rounded-xl text-[11px] font-bold flex items-center justify-center hover:bg-black transition-all">Sign In</Link>
+                <div className="flex-1 flex flex-col gap-5 pt-2 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                    {/* Bank / Institutional path */}
+                    <div className="p-5 bg-blue-50 rounded-2xl border border-blue-100 text-center">
+                        <h3 className="text-[12px] font-extrabold text-blue-800 mb-1.5 uppercase tracking-wider">Bank Access</h3>
+                        <p className="text-[10px] text-blue-700/80 mb-4 leading-relaxed">Sign in with your bank credentials to manage your node registry.</p>
+                        <Link href="/login" className="block w-full h-9 bg-blue-600 text-white rounded-lg text-[11px] font-bold flex items-center justify-center hover:bg-black transition-all">Sign In as Bank</Link>
+                        <Link href="/register" className="block mt-2 text-[10px] text-blue-700 font-bold hover:underline">Register your Institution →</Link>
                     </div>
 
-                    <div className="text-center p-4">
-                        <p className="text-[10px] text-gray-400 font-bold uppercase mb-2">New Bank Account?</p>
-                        <Link href="/register" className="text-[11px] text-blue-600 font-bold hover:underline">Register your Institution →</Link>
+                    {/* Divider */}
+                    <div className="flex items-center gap-2 px-2">
+                        <div className="flex-1 h-px bg-gray-100" />
+                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">or</span>
+                        <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+
+                    {/* QuickBooks path — separate from bank login */}
+                    <div className="p-5 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+                        <h3 className="text-[12px] font-extrabold text-emerald-800 mb-1.5 uppercase tracking-wider">QuickBooks</h3>
+                        <p className="text-[10px] text-emerald-700/80 mb-4 leading-relaxed">Connect your QuickBooks Online account to auto-clear invoices with ZATCA.</p>
+                        <Link href="/quickbooks" className="w-full h-9 bg-emerald-600 text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-700 transition-all">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 11 6a7 7 0 0 1 7 7M11 20a7 7 0 0 0 7-7M11 20l-4 4M18 13l4-4" /></svg>
+                            Start QB Integration
+                        </Link>
                     </div>
                 </div>
             )}
