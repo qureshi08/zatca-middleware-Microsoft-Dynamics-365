@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Download,
-  Eye,
+  FileText,
   Filter,
   Loader2,
   CheckCircle2,
@@ -14,6 +14,11 @@ import {
   AlertTriangle,
   RefreshCw,
   Pencil,
+  User,
+  MapPin,
+  Hash,
+  Calendar,
+  StickyNote,
 } from 'lucide-react';
 
 type ZatcaStatus = 'pending' | 'submitted' | 'cleared' | 'failed';
@@ -327,7 +332,7 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
               <th className="px-3 py-2 text-left">Customer</th>
               <th className="px-3 py-2 text-right">Total</th>
               <th className="px-3 py-2 text-left">Status</th>
-              <th className="px-3 py-2 w-12"></th>
+              <th className="px-3 py-2 text-right w-32">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -368,22 +373,23 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
                     <StatusBadge status={inv.zatca_status} error={inv.zatca_error} />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1.5">
                       {isFailed && (
                         <button
                           onClick={() => setResubmitTarget(inv)}
-                          className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600"
+                          className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1"
                           title="Resubmit or edit"
                         >
-                          <RefreshCw size={14} />
+                          <RefreshCw size={11} />
+                          Retry
                         </button>
                       )}
                       <button
                         onClick={() => openDetail(inv.id)}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600"
-                        title="View details"
+                        className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 flex items-center gap-1"
                       >
-                        <Eye size={14} />
+                        <FileText size={11} />
+                        Detail
                       </button>
                     </div>
                   </td>
@@ -563,10 +569,19 @@ function DetailDrawer({
   loading: boolean;
   onClose: () => void;
 }) {
+  const qb = invoice?.raw_qb_payload ?? {};
+  const currency = qb.CurrencyRef?.value ?? invoice?.currency ?? '';
+  const lines: any[] = Array.isArray(qb.Line) ? qb.Line : [];
+  const itemLines = lines.filter((l) => l.DetailType === 'SalesItemLineDetail');
+  const subtotalLine = lines.find((l) => l.DetailType === 'SubTotalLineDetail');
+  const discountLine = lines.find((l) => l.DetailType === 'DiscountLineDetail');
+  const taxDetail = qb.TxnTaxDetail ?? {};
+  const taxLines: any[] = Array.isArray(taxDetail.TaxLine) ? taxDetail.TaxLine : [];
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-lg bg-white shadow-2xl overflow-y-auto relative">
+      <div className="w-full max-w-2xl bg-white shadow-2xl overflow-y-auto relative">
         {/* Watermark seal — only when cleared */}
         {invoice?.zatca_status === 'cleared' && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
@@ -585,12 +600,23 @@ function DetailDrawer({
           </div>
         )}
 
-        <div className="relative p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-800">Invoice Details</h3>
-            <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100">
-              <X size={18} />
-            </button>
+        <div className="relative p-6 space-y-6">
+          <div className="flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur z-10 -mx-6 px-6 py-2 border-b">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">Invoice Details</h3>
+              <p className="text-[11px] text-slate-500">
+                QB ID <span className="font-mono">{invoice?.qb_invoice_id}</span>
+                {invoice?.qb_doc_number && (
+                  <> · Doc <span className="font-mono">{invoice.qb_doc_number}</span></>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {invoice && <StatusBadge status={invoice.zatca_status} error={invoice.zatca_error} />}
+              <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100">
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           {loading && (
@@ -601,71 +627,301 @@ function DetailDrawer({
 
           {invoice && !loading && (
             <>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <Field label="QB ID" value={invoice.qb_invoice_id} />
-                <Field label="Doc #" value={invoice.qb_doc_number ?? '—'} />
-                <Field label="Date" value={invoice.invoice_date ?? '—'} />
-                <Field
-                  label="Customer"
-                  value={invoice.customer_name ?? '(unnamed)'}
-                />
-                <Field
-                  label="Total"
-                  value={
-                    invoice.total_amount != null
-                      ? `${invoice.total_amount.toFixed(2)} ${invoice.currency ?? ''}`.trim()
-                      : '—'
-                  }
-                />
-                <Field label="ZATCA Status" value={invoice.zatca_status} />
-                {invoice.zatca_cleared_at && (
+              {/* Header / metadata */}
+              <SectionCard title="Invoice Metadata" icon={<Hash size={14} />}>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <Field label="QB Internal ID" value={invoice.qb_invoice_id} />
+                  <Field label="Doc Number" value={invoice.qb_doc_number ?? '—'} />
+                  <Field label="Issue Date" value={qb.TxnDate ?? invoice.invoice_date ?? '—'} />
+                  <Field label="Due Date" value={qb.DueDate ?? '—'} />
+                  <Field label="Currency" value={currency || '—'} />
                   <Field
-                    label="Cleared At"
-                    value={new Date(invoice.zatca_cleared_at).toLocaleString()}
+                    label="Exchange Rate"
+                    value={qb.ExchangeRate != null ? String(qb.ExchangeRate) : '—'}
                   />
-                )}
-                {invoice.zatca_submitted_at && (
-                  <Field
-                    label="Last Submission"
-                    value={new Date(invoice.zatca_submitted_at).toLocaleString()}
-                  />
-                )}
-              </div>
+                  {qb.SalesTermRef?.name && (
+                    <Field label="Terms" value={qb.SalesTermRef.name} />
+                  )}
+                  {qb.PrintStatus && <Field label="Print Status" value={qb.PrintStatus} />}
+                  {qb.EmailStatus && <Field label="Email Status" value={qb.EmailStatus} />}
+                </div>
+              </SectionCard>
 
-              {invoice.zatca_qr && (
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">
-                    ZATCA QR
-                  </div>
-                  {invoice.zatca_qr.startsWith('data:image') ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={invoice.zatca_qr}
-                      alt="ZATCA QR"
-                      className="w-40 h-40 rounded-xl border border-slate-200 p-2 bg-white"
-                    />
-                  ) : (
-                    <code className="block text-[10px] break-all bg-slate-50 p-2 rounded">
-                      {invoice.zatca_qr}
-                    </code>
+              {/* Customer */}
+              <SectionCard title="Customer" icon={<User size={14} />}>
+                <div className="space-y-3 text-sm">
+                  <Field
+                    label="Name"
+                    value={qb.CustomerRef?.name ?? invoice.customer_name ?? '—'}
+                  />
+                  {qb.BillEmail?.Address && (
+                    <Field label="Email" value={qb.BillEmail.Address} />
+                  )}
+                  {qb.BillAddr && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500 flex items-center gap-1 mb-1">
+                        <MapPin size={11} /> Billing Address
+                      </div>
+                      <div className="text-slate-800 leading-relaxed">
+                        {[
+                          qb.BillAddr.Line1,
+                          qb.BillAddr.Line2,
+                          qb.BillAddr.Line3,
+                          [qb.BillAddr.City, qb.BillAddr.CountrySubDivisionCode]
+                            .filter(Boolean)
+                            .join(', '),
+                          qb.BillAddr.PostalCode,
+                          qb.BillAddr.Country,
+                        ]
+                          .filter(Boolean)
+                          .map((line, i) => (
+                            <div key={i}>{line}</div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  {qb.ShipAddr && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500 flex items-center gap-1 mb-1">
+                        <MapPin size={11} /> Shipping Address
+                      </div>
+                      <div className="text-slate-800 leading-relaxed">
+                        {[
+                          qb.ShipAddr.Line1,
+                          qb.ShipAddr.Line2,
+                          qb.ShipAddr.City,
+                          qb.ShipAddr.PostalCode,
+                          qb.ShipAddr.Country,
+                        ]
+                          .filter(Boolean)
+                          .map((line, i) => (
+                            <div key={i}>{line}</div>
+                          ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-              )}
+              </SectionCard>
 
-              {invoice.zatca_error && (
-                <div>
-                  <div className="text-[11px] uppercase tracking-wide text-red-600 mb-2">
-                    Failure Reason
+              {/* Line items */}
+              <SectionCard title={`Line Items (${itemLines.length})`} icon={<FileText size={14} />}>
+                {itemLines.length === 0 ? (
+                  <p className="text-sm text-slate-400">No line items.</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-1">
+                    <table className="w-full text-[12px]">
+                      <thead className="text-slate-500 text-[10px] uppercase tracking-wide">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left">#</th>
+                          <th className="px-2 py-1.5 text-left">Item / Description</th>
+                          <th className="px-2 py-1.5 text-right">Qty</th>
+                          <th className="px-2 py-1.5 text-right">Unit Price</th>
+                          <th className="px-2 py-1.5 text-left">Tax Code</th>
+                          <th className="px-2 py-1.5 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {itemLines.map((line, idx) => {
+                          const detail = line.SalesItemLineDetail ?? {};
+                          const itemName =
+                            detail.ItemRef?.name ?? line.Description ?? 'Item';
+                          const desc =
+                            line.Description && detail.ItemRef?.name !== line.Description
+                              ? line.Description
+                              : null;
+                          return (
+                            <tr key={line.Id ?? idx} className="align-top">
+                              <td className="px-2 py-1.5 text-slate-400">{idx + 1}</td>
+                              <td className="px-2 py-1.5">
+                                <div className="font-medium text-slate-800">{itemName}</div>
+                                {desc && <div className="text-[11px] text-slate-500">{desc}</div>}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-slate-700">
+                                {detail.Qty ?? '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-right text-slate-700">
+                                {detail.UnitPrice != null
+                                  ? Number(detail.UnitPrice).toFixed(2)
+                                  : '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-slate-600 text-[11px]">
+                                {detail.TaxCodeRef?.value ?? '—'}
+                              </td>
+                              <td className="px-2 py-1.5 text-right font-medium text-slate-800">
+                                {line.Amount != null ? Number(line.Amount).toFixed(2) : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="text-[12px] font-mono p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 break-words">
-                    {invoice.zatca_error}
-                  </div>
+                )}
+              </SectionCard>
+
+              {/* Totals */}
+              <SectionCard title="Totals" icon={<Calendar size={14} />}>
+                <div className="space-y-1 text-sm">
+                  {subtotalLine?.Amount != null && (
+                    <TotalRow label="Subtotal" value={Number(subtotalLine.Amount)} currency={currency} />
+                  )}
+                  {discountLine?.Amount != null && (
+                    <TotalRow
+                      label="Discount"
+                      value={-Math.abs(Number(discountLine.Amount))}
+                      currency={currency}
+                    />
+                  )}
+                  {taxLines.length > 0 && (
+                    <div className="py-1">
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">Tax Breakdown</div>
+                      {taxLines.map((tl: any, i: number) => {
+                        const td = tl.TaxLineDetail ?? {};
+                        const ratePct = td.TaxPercent;
+                        return (
+                          <div
+                            key={i}
+                            className="flex justify-between text-[12px] text-slate-600 pl-2"
+                          >
+                            <span>
+                              {td.TaxRateRef?.name ?? 'Tax'}
+                              {ratePct != null && <> · {ratePct}%</>}
+                              {td.NetAmountTaxable != null && (
+                                <span className="text-slate-400">
+                                  {' '}
+                                  on {Number(td.NetAmountTaxable).toFixed(2)}
+                                </span>
+                              )}
+                            </span>
+                            <span className="font-medium text-slate-700">
+                              {Number(tl.Amount ?? 0).toFixed(2)} {currency}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {taxDetail.TotalTax != null && (
+                    <TotalRow
+                      label="Total Tax"
+                      value={Number(taxDetail.TotalTax)}
+                      currency={currency}
+                    />
+                  )}
+                  {qb.TotalAmt != null && (
+                    <TotalRow
+                      label="Grand Total"
+                      value={Number(qb.TotalAmt)}
+                      currency={currency}
+                      strong
+                    />
+                  )}
+                  {qb.Balance != null && (
+                    <TotalRow
+                      label="Balance Due"
+                      value={Number(qb.Balance)}
+                      currency={currency}
+                    />
+                  )}
+                  {qb.HomeTotalAmt != null && qb.HomeTotalAmt !== qb.TotalAmt && (
+                    <TotalRow
+                      label="Home Currency Total"
+                      value={Number(qb.HomeTotalAmt)}
+                      currency=""
+                    />
+                  )}
                 </div>
+              </SectionCard>
+
+              {/* Notes / memos */}
+              {(qb.PrivateNote || qb.CustomerMemo?.value) && (
+                <SectionCard title="Notes" icon={<StickyNote size={14} />}>
+                  <div className="space-y-2 text-sm">
+                    {qb.CustomerMemo?.value && (
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                          Customer Memo
+                        </div>
+                        <div className="text-slate-700 whitespace-pre-wrap">
+                          {qb.CustomerMemo.value}
+                        </div>
+                      </div>
+                    )}
+                    {qb.PrivateNote && (
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                          Private Note
+                        </div>
+                        <div className="text-slate-700 whitespace-pre-wrap">{qb.PrivateNote}</div>
+                      </div>
+                    )}
+                  </div>
+                </SectionCard>
               )}
 
+              {/* ZATCA section */}
+              <SectionCard title="ZATCA Clearance" icon={<ShieldCheck size={14} />}>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Status" value={invoice.zatca_status} />
+                    {invoice.zatca_submitted_at && (
+                      <Field
+                        label="Last Submission"
+                        value={new Date(invoice.zatca_submitted_at).toLocaleString()}
+                      />
+                    )}
+                    {invoice.zatca_cleared_at && (
+                      <Field
+                        label="Cleared At"
+                        value={new Date(invoice.zatca_cleared_at).toLocaleString()}
+                      />
+                    )}
+                  </div>
+
+                  {invoice.zatca_qr && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">
+                        ZATCA QR
+                      </div>
+                      {invoice.zatca_qr.startsWith('data:image') ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={invoice.zatca_qr}
+                          alt="ZATCA QR"
+                          className="w-40 h-40 rounded-xl border border-slate-200 p-2 bg-white"
+                        />
+                      ) : (
+                        <code className="block text-[10px] break-all bg-slate-50 p-2 rounded">
+                          {invoice.zatca_qr}
+                        </code>
+                      )}
+                    </div>
+                  )}
+
+                  {invoice.zatca_error && (
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-red-600 mb-1">
+                        Failure Reason
+                      </div>
+                      <div className="text-[12px] font-mono p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 break-words">
+                        {invoice.zatca_error}
+                      </div>
+                    </div>
+                  )}
+
+                  {!invoice.zatca_qr && !invoice.zatca_error && invoice.zatca_status === 'pending' && (
+                    <p className="text-[12px] text-slate-400">
+                      Not yet submitted. Select this invoice in the table and click{' '}
+                      <span className="font-semibold">Submit Selected to ZATCA</span>.
+                    </p>
+                  )}
+                </div>
+              </SectionCard>
+
+              {/* Raw payloads — collapsed */}
               <details className="rounded-xl border border-slate-200 p-3 bg-slate-50/40">
                 <summary className="cursor-pointer text-[12px] font-semibold text-slate-700">
-                  Raw QuickBooks payload
+                  Raw QuickBooks payload (debug)
                 </summary>
                 <pre className="mt-3 text-[10px] text-slate-600 overflow-x-auto whitespace-pre-wrap">
                   {JSON.stringify(invoice.raw_qb_payload, null, 2)}
@@ -686,6 +942,53 @@ function DetailDrawer({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white/70 p-4">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide font-bold text-slate-600 mb-3">
+        {icon}
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TotalRow({
+  label,
+  value,
+  currency,
+  strong = false,
+}: {
+  label: string;
+  value: number;
+  currency: string;
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={`flex justify-between py-1 ${
+        strong
+          ? 'border-t border-slate-200 mt-1 pt-2 text-slate-900 font-bold text-base'
+          : 'text-slate-700'
+      }`}
+    >
+      <span>{label}</span>
+      <span className={strong ? '' : 'font-medium'}>
+        {value.toFixed(2)} {currency}
+      </span>
     </div>
   );
 }
