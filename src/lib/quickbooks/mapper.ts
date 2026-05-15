@@ -21,13 +21,16 @@ const PLACEHOLDER_SELLER = {
   partyLegalEntity: { registrationName: '' },
 };
 
-export function mapQBInvoiceToZatca(qbInvoice: any): SimpleInvoiceInput {
+export function mapQBInvoiceToZatca(
+  qbInvoice: any,
+  type: 'standard' | 'simplified' = 'standard'
+): SimpleInvoiceInput {
   const buyerTaxNumber =
     qbInvoice.CustomField?.find((f: any) => f.Name === 'TaxNumber')?.StringValue ||
     '300000000000003';
 
   return {
-    type: 'standard',
+    type,
     documentType: '388',
     id: qbInvoice.DocNumber || `QB-${qbInvoice.Id}`,
     issueDate: qbInvoice.TxnDate,

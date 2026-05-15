@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { data: rows, error: fetchErr } = await supabaseAdmin
       .from('quickbooks_invoices')
-      .select('id, qb_invoice_id, raw_qb_payload, zatca_status')
+      .select('id, qb_invoice_id, raw_qb_payload, zatca_status, zatca_invoice_type')
       .eq('organization_id', orgId)
       .in('id', invoiceIds);
 
@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
         .eq('id', row.id);
 
       try {
-        const zatcaInput = mapQBInvoiceToZatca(row.raw_qb_payload);
+        const invoiceType: 'standard' | 'simplified' =
+          row.zatca_invoice_type === 'simplified' ? 'simplified' : 'standard';
+        const zatcaInput = mapQBInvoiceToZatca(row.raw_qb_payload, invoiceType);
         const result = await generateInvoiceAction(zatcaInput, orgId);
 
         if (!result.success || !result.data) {

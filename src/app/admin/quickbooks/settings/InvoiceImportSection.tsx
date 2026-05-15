@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 type ZatcaStatus = 'pending' | 'submitted' | 'cleared' | 'failed';
+type ZatcaType = 'standard' | 'simplified';
 
 interface InvoiceRow {
   id: string;
@@ -32,6 +33,7 @@ interface InvoiceRow {
   total_amount: number | null;
   currency: string | null;
   zatca_status: ZatcaStatus;
+  zatca_invoice_type: ZatcaType;
   zatca_error: string | null;
   zatca_cleared_at: string | null;
 }
@@ -54,6 +56,8 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
   const [importing, setImporting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [togglingTypeId, setTogglingTypeId] = useState<string | null>(null);
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [appliedRange, setAppliedRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
@@ -190,6 +194,45 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
     });
   };
 
+  const enterSelectionMode = () => {
+    setSelectionMode(true);
+  };
+
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleInvoiceType = async (inv: InvoiceRow) => {
+    if (inv.zatca_status === 'cleared') {
+      flashToast('error', 'Cannot change type after invoice has been cleared.');
+      return;
+    }
+    const next: ZatcaType = inv.zatca_invoice_type === 'standard' ? 'simplified' : 'standard';
+    setTogglingTypeId(inv.id);
+    setInvoices((prev) =>
+      prev.map((r) => (r.id === inv.id ? { ...r, zatca_invoice_type: next } : r))
+    );
+    try {
+      const res = await fetch(`/api/quickbooks/invoices/${inv.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId, zatca_invoice_type: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update type');
+    } catch (e: any) {
+      flashToast('error', e.message);
+      setInvoices((prev) =>
+        prev.map((r) =>
+          r.id === inv.id ? { ...r, zatca_invoice_type: inv.zatca_invoice_type } : r
+        )
+      );
+    } finally {
+      setTogglingTypeId(null);
+    }
+  };
+
   const selectableIds = useMemo(
     () => invoices.filter((i) => i.zatca_status !== 'cleared').map((i) => i.id),
     [invoices]
@@ -275,6 +318,24 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           Refresh
         </button>
+        {!selectionMode ? (
+          <button
+            onClick={enterSelectionMode}
+            disabled={invoices.length === 0}
+            className="px-4 py-2 text-sm rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm disabled:opacity-40"
+          >
+            <ShieldCheck size={14} />
+            Select for Clearance
+          </button>
+        ) : (
+          <button
+            onClick={cancelSelection}
+            className="px-4 py-2 text-sm rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold flex items-center gap-2"
+          >
+            <X size={14} />
+            Cancel Selection
+          </button>
+        )}
         <button
           onClick={handleImport}
           disabled={importing}
@@ -284,6 +345,17 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
           {importing ? 'Importing…' : 'Import from QuickBooks'}
         </button>
       </div>
+
+      {selectionMode && (
+        <div className="px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[12px] flex items-center gap-2">
+          <ShieldCheck size={14} className="shrink-0" />
+          <span>
+            <span className="font-semibold">Selection mode active.</span> Tick the invoices you
+            want to submit to ZATCA, then click <span className="font-semibold">Clear Selected</span>.
+            Already-cleared rows are not selectable.
+          </span>
+        </div>
+      )}
 
       {isFilterActive && (
         <div className="text-[12px] text-slate-500">
@@ -317,20 +389,23 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600 text-[11px] uppercase tracking-wide">
             <tr>
-              <th className="px-3 py-2 w-8">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={toggleSelectAll}
-                  disabled={selectableIds.length === 0}
-                  aria-label="Select all"
-                />
-              </th>
+              {selectionMode && (
+                <th className="px-3 py-2 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    disabled={selectableIds.length === 0}
+                    aria-label="Select all"
+                  />
+                </th>
+              )}
               <th className="px-3 py-2 text-left">QB ID</th>
               <th className="px-3 py-2 text-left">Doc #</th>
               <th className="px-3 py-2 text-left">Date</th>
               <th className="px-3 py-2 text-left">Customer</th>
               <th className="px-3 py-2 text-right">Total</th>
+              <th className="px-3 py-2 text-left">Type</th>
               <th className="px-3 py-2 text-left">Status</th>
               <th className="px-3 py-2 text-right w-32">Actions</th>
             </tr>
@@ -338,7 +413,10 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
           <tbody className="divide-y divide-slate-100">
             {invoices.length === 0 && !loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-400 text-sm">
+                <td
+                  colSpan={selectionMode ? 9 : 8}
+                  className="px-3 py-8 text-center text-slate-400 text-sm"
+                >
                   No invoices yet. Click <span className="font-semibold">Import from QuickBooks</span> to pull them in.
                 </td>
               </tr>
@@ -347,17 +425,20 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
               const isCleared = inv.zatca_status === 'cleared';
               const isFailed = inv.zatca_status === 'failed';
               const checked = selectedIds.has(inv.id);
+              const typeLoading = togglingTypeId === inv.id;
               return (
                 <tr key={inv.id} className="hover:bg-slate-50/60">
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleSelect(inv.id, inv.zatca_status)}
-                      disabled={isCleared}
-                      title={isCleared ? 'Already cleared' : ''}
-                    />
-                  </td>
+                  {selectionMode && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSelect(inv.id, inv.zatca_status)}
+                        disabled={isCleared}
+                        title={isCleared ? 'Already cleared' : ''}
+                      />
+                    </td>
+                  )}
                   <td className="px-3 py-2 font-mono text-[12px] text-slate-600">{inv.qb_invoice_id}</td>
                   <td className="px-3 py-2 text-slate-600">{inv.qb_doc_number ?? '—'}</td>
                   <td className="px-3 py-2 text-slate-600">{inv.invoice_date ?? '—'}</td>
@@ -368,6 +449,14 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
                     {inv.total_amount != null
                       ? `${inv.total_amount.toFixed(2)} ${inv.currency ?? ''}`.trim()
                       : '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <TypeBadge
+                      type={inv.zatca_invoice_type}
+                      loading={typeLoading}
+                      locked={isCleared}
+                      onToggle={() => toggleInvoiceType(inv)}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <StatusBadge status={inv.zatca_status} error={inv.zatca_error} />
@@ -401,7 +490,7 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
       </div>
 
       {/* Bulk action bar */}
-      {selectedIds.size > 0 && (
+      {selectionMode && selectedIds.size > 0 && (
         <div className="sticky bottom-4 flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-900 text-white shadow-lg">
           <span className="text-sm">
             <span className="font-bold">{selectedIds.size}</span> invoice(s) selected
@@ -416,10 +505,10 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
             <button
               onClick={() => setShowConfirm(true)}
               disabled={clearing}
-              className="px-4 py-1.5 text-sm rounded-lg bg-blue-600 hover:bg-blue-500 font-semibold flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-1.5 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold flex items-center gap-2 disabled:opacity-50"
             >
               {clearing ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
-              Submit Selected to ZATCA
+              Clear Selected
             </button>
           </div>
         </div>
@@ -434,10 +523,11 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
               <h3 className="text-lg font-bold text-slate-800">Confirm ZATCA Submission</h3>
             </div>
             <p className="text-sm text-slate-600">
-              Submit <span className="font-bold">{selectedIds.size}</span> invoice(s) to the ZATCA
-              Compliance Simulator? Each will be permanently marked as <em>cleared</em> or{' '}
-              <em>failed</em>. Cleared invoices cannot be re-submitted without explicit
-              confirmation.
+              Submit <span className="font-bold">{selectedIds.size}</span> invoice(s) to ZATCA?
+              Each row is processed using its own type — <span className="font-semibold">B2B → Clearance API</span>,{' '}
+              <span className="font-semibold">B2C → Reporting API</span>. After this, each invoice
+              is permanently marked as <em>cleared</em> or <em>failed</em>; the type can no
+              longer be changed.
             </p>
             <div className="flex gap-3 pt-2">
               <button
@@ -509,6 +599,40 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
         />
       )}
     </div>
+  );
+}
+
+function TypeBadge({
+  type,
+  loading,
+  locked,
+  onToggle,
+}: {
+  type: ZatcaType;
+  loading: boolean;
+  locked: boolean;
+  onToggle: () => void;
+}) {
+  const isB2B = type === 'standard';
+  const tooltip = locked
+    ? 'Type is locked once cleared'
+    : `Click to switch to ${isB2B ? 'B2C (simplified)' : 'B2B (standard)'}`;
+  return (
+    <button
+      onClick={onToggle}
+      disabled={locked || loading}
+      title={tooltip}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold border transition ${
+        isB2B
+          ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+          : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
+      } ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} ${
+        loading ? 'opacity-50' : ''
+      }`}
+    >
+      {loading && <Loader2 size={10} className="animate-spin" />}
+      {isB2B ? 'B2B · Standard' : 'B2C · Simplified'}
+    </button>
   );
 }
 
@@ -864,6 +988,14 @@ function DetailDrawer({
                 <div className="space-y-3 text-sm">
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Status" value={invoice.zatca_status} />
+                    <Field
+                      label="Invoice Type"
+                      value={
+                        invoice.zatca_invoice_type === 'standard'
+                          ? 'B2B · Standard (Clearance)'
+                          : 'B2C · Simplified (Reporting)'
+                      }
+                    />
                     {invoice.zatca_submitted_at && (
                       <Field
                         label="Last Submission"

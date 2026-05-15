@@ -56,14 +56,13 @@ export async function POST(req: NextRequest) {
 
       if (invoices.length === 0) break;
 
-      const existingClearedIds = await fetchClearedIds(
-        orgId,
-        invoices.map((inv) => String(inv.Id))
-      );
+      const allIds = invoices.map((inv) => String(inv.Id));
+      const existingClearedIds = await fetchClearedIds(orgId, allIds);
+      const existingTypes = await fetchExistingTypes(orgId, allIds);
 
       const rows = invoices
         .filter((inv) => !existingClearedIds.has(String(inv.Id)))
-        .map((inv) => buildRow(orgId, inv));
+        .map((inv) => buildRow(orgId, inv, existingTypes.get(String(inv.Id))));
 
       preserved += invoices.length - rows.length;
 
@@ -106,7 +105,38 @@ async function fetchClearedIds(orgId: string, qbIds: string[]): Promise<Set<stri
   return new Set((data ?? []).map((r) => r.qb_invoice_id));
 }
 
-function buildRow(orgId: string, inv: any) {
+async function fetchExistingTypes(
+  orgId: string,
+  qbIds: string[]
+): Promise<Map<string, 'standard' | 'simplified'>> {
+  if (qbIds.length === 0) return new Map();
+  const { data } = await supabaseAdmin
+    .from('quickbooks_invoices')
+    .select('qb_invoice_id, zatca_invoice_type')
+    .eq('organization_id', orgId)
+    .in('qb_invoice_id', qbIds);
+  const map = new Map<string, 'standard' | 'simplified'>();
+  (data ?? []).forEach((r) => {
+    if (r.zatca_invoice_type === 'standard' || r.zatca_invoice_type === 'simplified') {
+      map.set(r.qb_invoice_id, r.zatca_invoice_type);
+    }
+  });
+  return map;
+}
+
+function detectInvoiceType(inv: any): 'standard' | 'simplified' {
+  const customFields: any[] = Array.isArray(inv.CustomField) ? inv.CustomField : [];
+  const hasBuyerVat = customFields.some(
+    (f) => /tax|vat|trn/i.test(f.Name ?? '') && f.StringValue
+  );
+  return hasBuyerVat ? 'standard' : 'simplified';
+}
+
+function buildRow(
+  orgId: string,
+  inv: any,
+  existingType?: 'standard' | 'simplified'
+) {
   return {
     organization_id: orgId,
     qb_invoice_id: String(inv.Id),
@@ -117,6 +147,8 @@ function buildRow(orgId: string, inv: any) {
     total_amount: inv.TotalAmt ?? null,
     currency: inv.CurrencyRef?.value ?? null,
     raw_qb_payload: inv,
+    // Preserve user-overridden type on re-import; heuristic only on first import
+    zatca_invoice_type: existingType ?? detectInvoiceType(inv),
     updated_at: new Date().toISOString(),
   };
 }
