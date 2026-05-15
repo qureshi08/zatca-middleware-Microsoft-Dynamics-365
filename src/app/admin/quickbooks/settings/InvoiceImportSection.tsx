@@ -49,7 +49,9 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
   const [importing, setImporting] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [monthFilter, setMonthFilter] = useState<string>('');
+  const [fromDate, setFromDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
+  const [appliedRange, setAppliedRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
   const [showConfirm, setShowConfirm] = useState(false);
   const [detail, setDetail] = useState<DetailInvoice | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -66,7 +68,8 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
     setLoading(true);
     try {
       const params = new URLSearchParams({ orgId });
-      if (monthFilter) params.set('month', monthFilter);
+      if (appliedRange.from) params.set('from', appliedRange.from);
+      if (appliedRange.to) params.set('to', appliedRange.to);
       const res = await fetch(`/api/quickbooks/invoices?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load invoices');
@@ -76,7 +79,25 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [orgId, monthFilter]);
+  }, [orgId, appliedRange]);
+
+  const applyDateFilter = () => {
+    if (fromDate && toDate && fromDate > toDate) {
+      flashToast('error', 'Start date must be on or before end date.');
+      return;
+    }
+    setAppliedRange({ from: fromDate, to: toDate });
+  };
+
+  const clearDateFilter = () => {
+    setFromDate('');
+    setToDate('');
+    setAppliedRange({ from: '', to: '' });
+  };
+
+  const isFilterActive = !!(appliedRange.from || appliedRange.to);
+  const hasUnappliedChanges =
+    fromDate !== appliedRange.from || toDate !== appliedRange.to;
 
   useEffect(() => {
     if (isConnected) fetchInvoices();
@@ -201,19 +222,40 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Filter size={16} className="text-slate-400" />
-          <input
-            type="month"
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-          {monthFilter && (
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex items-end gap-2">
+          <Filter size={16} className="text-slate-400 mb-2.5" />
+          <div>
+            <label className="block text-[10px] uppercase tracking-wide text-slate-500 mb-1">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-wide text-slate-500 mb-1">To</label>
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => setToDate(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <button
+            onClick={applyDateFilter}
+            disabled={!hasUnappliedChanges}
+            className="px-3 py-2 text-sm rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Apply
+          </button>
+          {isFilterActive && (
             <button
-              onClick={() => setMonthFilter('')}
-              className="text-[11px] text-slate-500 hover:text-slate-700 underline"
+              onClick={clearDateFilter}
+              className="px-2 py-2 text-[11px] text-slate-500 hover:text-slate-700 underline"
             >
               Clear
             </button>
@@ -237,6 +279,15 @@ export default function InvoiceImportSection({ orgId, isConnected }: Props) {
           {importing ? 'Importing…' : 'Import from QuickBooks'}
         </button>
       </div>
+
+      {isFilterActive && (
+        <div className="text-[12px] text-slate-500">
+          Showing invoices
+          {appliedRange.from && <> from <span className="font-mono text-slate-700">{appliedRange.from}</span></>}
+          {appliedRange.to && <> to <span className="font-mono text-slate-700">{appliedRange.to}</span></>}
+          . <span className="text-slate-400">({invoices.length} match{invoices.length === 1 ? '' : 'es'})</span>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
