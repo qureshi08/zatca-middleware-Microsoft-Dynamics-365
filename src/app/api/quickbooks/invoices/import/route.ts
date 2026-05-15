@@ -124,14 +124,6 @@ async function fetchExistingTypes(
   return map;
 }
 
-function detectInvoiceType(inv: any): 'standard' | 'simplified' {
-  const customFields: any[] = Array.isArray(inv.CustomField) ? inv.CustomField : [];
-  const hasBuyerVat = customFields.some(
-    (f) => /tax|vat|trn/i.test(f.Name ?? '') && f.StringValue
-  );
-  return hasBuyerVat ? 'standard' : 'simplified';
-}
-
 function buildRow(
   orgId: string,
   inv: any,
@@ -147,8 +139,9 @@ function buildRow(
     total_amount: inv.TotalAmt ?? null,
     currency: inv.CurrencyRef?.value ?? null,
     raw_qb_payload: inv,
-    // Preserve user-overridden type on re-import; heuristic only on first import
-    zatca_invoice_type: existingType ?? detectInvoiceType(inv),
+    // Default new rows to B2B Standard. User flips per-row via the Type pill.
+    // Re-imports preserve any user override.
+    zatca_invoice_type: existingType ?? 'standard',
     updated_at: new Date().toISOString(),
   };
 }
