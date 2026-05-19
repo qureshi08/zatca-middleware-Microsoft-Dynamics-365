@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const URL = 'https://convergentbt.odoo.com';
+const ODOO_URL = 'https://convergentbt.odoo.com';
 const DB = 'convergentbt';
 const USERNAME = 'muhammad.anas.quershi@convergentbt.com';
 const PASSWORD = '-A,9*G%q7U6xX*W';
 
 async function request(service: string, method: string, args: any[], kwargs = {}) {
-    const res = await fetch(`${URL}/jsonrpc`, {
+    const res = await fetch(`${ODOO_URL}/jsonrpc`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
