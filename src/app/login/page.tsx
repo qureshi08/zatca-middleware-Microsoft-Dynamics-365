@@ -70,14 +70,14 @@ function LoginContent() {
     return (
         <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full opacity-20">
-                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]" />
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-600/20 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-600/20 rounded-full blur-[120px]" />
             </div>
 
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-10">
-                    <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">Institutional Sign In</h1>
-                    <p className="text-gray-400 text-sm">Access your secure banking node and transaction ledger.</p>
+                    <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">Gateway Sign In</h1>
+                    <p className="text-gray-400 text-sm">Access your ZATCA e-invoicing middleware portal.</p>
                 </div>
 
                 <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-10 shadow-2xl">
@@ -99,8 +99,8 @@ function LoginContent() {
                             <input
                                 required
                                 type="email"
-                                placeholder="name@bank.jo"
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                placeholder="admin@mycompany.com"
+                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                             />
@@ -112,7 +112,7 @@ function LoginContent() {
                                 required
                                 type="password"
                                 placeholder="••••••••"
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                             />
@@ -120,14 +120,14 @@ function LoginContent() {
 
                         <button
                             disabled={loading}
-                            className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                            className="w-full h-14 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                         >
-                            {loading ? 'Authenticating Node...' : 'Sign In to Hub →'}
+                            {loading ? 'Authenticating...' : 'Sign In →'}
                         </button>
                     </form>
 
                     <p className="text-center text-gray-500 text-xs mt-8 font-medium">
-                        Need an institutional account? <Link href="/register" className="text-blue-500 hover:underline">Register your Bank</Link>
+                        Need a portal account? <Link href="/register?intent=odoo" className="text-orange-500 hover:underline">Register your business</Link>
                     </p>
                 </div>
             </div>

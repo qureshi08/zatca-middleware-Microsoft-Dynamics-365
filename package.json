@@ -1,5 +1,5 @@
 {
-  "name": "zatca-einvoicing",
+  "name": "zatca-middleware-odoo",
   "version": "0.1.0",
   "private": true,
   "scripts": {

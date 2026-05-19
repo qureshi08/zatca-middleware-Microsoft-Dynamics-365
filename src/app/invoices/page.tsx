@@ -71,9 +71,6 @@ export default function InvoicesPage() {
                         Audit trail of all ZATCA-submitted B2B tax instruments, credit and debit notes.
                     </p>
                 </div>
-                <Link href="/create" className="btn-primary">
-                    + Create Invoice
-                </Link>
             </div>
 
             {/* Stats Row */}
@@ -119,11 +116,6 @@ export default function InvoicesPage() {
                     <div style={{ padding: '4rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '2rem', opacity: 0.15, marginBottom: '12px' }}>🧾</div>
                         <p style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>No invoices match your filter.</p>
-                        {invoices.length === 0 && (
-                            <Link href="/create" className="btn-primary btn-sm" style={{ marginTop: '16px', display: 'inline-flex' }}>
-                                Create your first invoice
-                            </Link>
-                        )}
                     </div>
                 ) : (
                     <table className="data-table">

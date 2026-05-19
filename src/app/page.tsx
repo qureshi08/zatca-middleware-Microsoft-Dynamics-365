@@ -51,7 +51,7 @@ export default function DashboardPage() {
   if (contextLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -62,12 +62,12 @@ export default function DashboardPage() {
         <div className="container">
           <div className="max-w-2xl mx-auto text-center space-y-12">
             <div className="card-pro p-10 bg-white border-2 border-dashed border-gray-100 flex flex-col items-center">
-              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl mb-8">🏗️</div>
-              <h1 className="h1 mb-2">Initialize Your Cluster</h1>
-              <p className="body-text text-sm max-w-md mx-auto mb-8">Welcome to the ZATCA Middleware. Your node is active but no bank identities have been provisioned yet.</p>
+              <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center text-3xl mb-8">🏗️</div>
+              <h1 className="h1 mb-2">Connect Odoo Integration</h1>
+              <p className="body-text text-sm max-w-md mx-auto mb-8">Welcome to the ZATCA Middleware. Your Odoo gateway is active but no Odoo integration credentials have been set up yet.</p>
 
-              <Link href="/admin" className="btn-pro h-12 px-10 bg-blue-600 hover:scale-105 transition-transform shadow-2xl shadow-blue-500/20">
-                Configure First Node
+              <Link href="/admin/odoo/settings" className="btn-pro h-12 px-10 bg-orange-600 hover:scale-105 transition-transform shadow-2xl shadow-orange-500/20 text-white font-bold flex items-center justify-center">
+                Configure Odoo Settings
               </Link>
 
               <p className="text-[10px] text-gray-300 font-bold mt-8 uppercase tracking-widest italic">Setup requires your official Saudi Tax ID (TIN).</p>
@@ -84,8 +84,8 @@ export default function DashboardPage() {
         <div className="container">
           <div className="card-pro p-10 bg-amber-50 border-amber-100 text-center max-w-lg mx-auto">
             <h3 className="h3 mb-2 text-amber-700">Authorization Required</h3>
-            <p className="small-text mb-6">This bank unit is not authorized on this device. Please enter your API Key in the sidebar to link the identity.</p>
-            <Link href="/admin" className="btn-pro bg-amber-500">View Registry</Link>
+            <p className="small-text mb-6">This organization is not authorized on this device. Please make sure your API Key is linked.</p>
+            <Link href="/admin/odoo/settings" className="btn-pro bg-amber-500 text-white font-bold flex items-center justify-center">Configure Odoo</Link>
           </div>
         </div>
       </div>
@@ -102,15 +102,15 @@ export default function DashboardPage() {
         <div className="container">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="h1 mb-1">Control Center</h1>
+              <h1 className="h1 mb-1">Odoo Sync Center</h1>
               <div className="flex items-center gap-3">
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${isLive ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {isLive ? 'Live Hub' : 'Lab Mode'}
+                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${isLive ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                  {isLive ? 'Live Gate' : 'Sandbox Mode'}
                 </span>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[12px] font-semibold text-gray-400">{activeBank.name} · Unit {activeBank.id}</span>
+                  <span className="text-[12px] font-semibold text-gray-400">{activeBank.name} · Org ID {activeBank.id}</span>
                   <div className="flex items-center gap-2 group">
-                    <code className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-blue-600 cursor-pointer" onClick={() => navigator.clipboard.writeText(apiKey || '')}>
+                    <code className="text-[10px] bg-gray-100 px-2 py-0.5 rounded font-mono font-bold text-orange-600 cursor-pointer" onClick={() => navigator.clipboard.writeText(apiKey || '')}>
                       {apiKey}
                     </code>
                     <span className="text-[9px] font-black uppercase text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">Click to copy Key</span>
@@ -119,26 +119,26 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <Link href="/explorer" className="btn-pro">
-                Execute Transaction
+              <Link href="/admin/odoo/settings" className="btn-pro bg-orange-600 text-white font-bold">
+                Odoo Settings
               </Link>
-              <Link href="/admin" className="btn-pro btn-pro-secondary">
-                Registry
+              <Link href="/onboarding" className="btn-pro btn-pro-secondary font-bold">
+                ZATCA Onboarding
               </Link>
             </div>
           </div>
         </div>
       </section>
-
+ 
       <section className="section-pro">
         <div className="container">
           {/* Performance Data */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
-              { label: 'INVOICES SUBMITTED', value: stats?.submittedCount || 0, color: 'text-blue-600' },
-              { label: 'INVOICES PROCESSED', value: stats?.clearedCount || 0, color: 'text-green-600' },
-              { label: 'CLEARANCE RATE', value: stats?.successRate || '0%', color: 'text-black' },
-              { label: 'TOTAL FLOW', value: `SAR ${stats?.totalVolumeSAR || 0}`, color: 'text-purple-600' },
+              { label: 'INVOICES RECEIVED', value: stats?.submittedCount || 0, color: 'text-orange-600' },
+              { label: 'CLEARED BY ZATCA', value: stats?.clearedCount || 0, color: 'text-green-600' },
+              { label: 'SUCCESS RATE', value: stats?.successRate || '0%', color: 'text-black' },
+              { label: 'TOTAL VALUE', value: `SAR ${stats?.totalVolumeSAR || 0}`, color: 'text-purple-600' },
             ].map((stat, i) => (
               <div key={i} className="card-pro bg-white p-3 border border-gray-50 shadow-sm">
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{stat.label}</span>
@@ -150,31 +150,31 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start mb-6">
             {/* Activation Progress (Smart Toggle) */}
             <div className="md:col-span-2 space-y-3">
-              <h3 className="h3">{isLive ? 'Operational Context' : 'Activation Roadmap'}</h3>
+              <h3 className="h3">{isLive ? 'Operational Status' : 'Compliance Roadmap'}</h3>
               <div className="card-pro p-4 bg-[#fbfbfd]">
                 {isLive ? (
                   <div className="flex items-center gap-4 py-1">
                     <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-lg shadow-sm border border-green-200">✓</div>
                     <div>
-                      <p className="text-[14px] font-black text-black">ZATCA Production Active</p>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Status: LIVE GATEWAY · Node 2.5</p>
+                      <p className="text-[14px] font-black text-black">ZATCA Production Gateway Active</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Status: LIVE COMPLIANT</p>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between relative py-2">
                     <div className="absolute top-[16px] left-[20px] right-[20px] h-[2px] bg-gray-100 hidden md:block" />
                     <div
-                      className="absolute top-[16px] left-[20px] h-[2px] bg-blue-600 transition-all duration-700 hidden md:block"
+                      className="absolute top-[16px] left-[20px] h-[2px] bg-orange-600 transition-all duration-700 hidden md:block"
                       style={{ width: isCompliant ? '66%' : hasCSR ? '33%' : '0%' }}
                     />
 
                     {[
-                      { label: 'CSR', done: hasCSR },
-                      { label: 'Verification', done: isCompliant },
-                      { label: 'ZATCA Live', done: isLive },
+                      { label: 'Generate CSR', done: hasCSR },
+                      { label: 'Compliance Sandbox', done: isCompliant },
+                      { label: 'Production Access', done: isLive },
                     ].map((step, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center relative z-10">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#fff] transition-all duration-500 shadow-sm ${step.done ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 text-xs'}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#fff] transition-all duration-500 shadow-sm ${step.done ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-400 text-xs'}`}>
                           {step.done ? (
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                           ) : (
@@ -191,20 +191,20 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Link href="/onboarding" className="card-pro flex items-center justify-between group hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">ID</div>
+                    <div className="w-8 h-8 bg-orange-600 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">ID</div>
                     <div>
-                      <p className="text-[13px] font-bold">Identity Suite</p>
-                      <p className="text-[12px] text-gray-400">Complete e-invoicing setup</p>
+                      <p className="text-[13px] font-bold">ZATCA Onboarding</p>
+                      <p className="text-[12px] text-gray-400">Complete e-invoicing registration</p>
                     </div>
                   </div>
                   <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                 </Link>
-                <Link href="/explorer" className="card-pro flex items-center justify-between group hover:bg-gray-50 transition-colors">
+                <Link href="/invoices" className="card-pro flex items-center justify-between group hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">API</div>
+                    <div className="w-8 h-8 bg-orange-600 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">📄</div>
                     <div>
-                      <p className="text-[13px] font-bold">Activity Lab</p>
-                      <p className="text-[12px] text-gray-400">Execute gateway requests</p>
+                      <p className="text-[13px] font-bold">Synced Invoices</p>
+                      <p className="text-[12px] text-gray-400">Audit logs and XML/PDF registry</p>
                     </div>
                   </div>
                   <span className="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
@@ -214,29 +214,29 @@ export default function DashboardPage() {
 
             {/* Entity Context (Dense) */}
             <div className="space-y-3">
-              <h3 className="h3">Node Context</h3>
+              <h3 className="h3">Integration Context</h3>
               <div className="card-pro p-3 bg-white space-y-2">
                 <div className="flex justify-between items-center py-1 border-b border-gray-50">
                   <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Tax ID</span>
                   <span className="text-[13px] font-black">{activeBank.tax_number}</span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Instances</span>
-                  <span className="text-[13px] font-black">{status?.onboardedEgss?.length || 0}</span>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Type</span>
+                  <span className="text-[13px] font-black">Odoo ERP Node</span>
                 </div>
                 <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Network</span>
-                  <span className="text-[13px] font-black text-blue-600 uppercase">SANDBOX_V2</span>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">ZATCA Environment</span>
+                  <span className="text-[13px] font-black text-orange-600 uppercase">SANDBOX</span>
                 </div>
                 <div className="pt-2">
-                  <p className="text-[11px] leading-relaxed text-gray-400 font-medium">Compliance signatures are refreshed every 30 days automatically by the middleware node.</p>
+                  <p className="text-[11px] leading-relaxed text-gray-400 font-medium">Compliance signatures and certificates are refreshed every 30 days automatically by the gateway.</p>
                 </div>
               </div>
 
               <div className="card-pro bg-black p-4 text-white hover:bg-gray-900 cursor-pointer transition-colors group">
-                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Internal Support</p>
+                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Developer Help</p>
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] font-black group-hover:text-blue-400">Raise Technical Ticket</span>
+                  <span className="text-[13px] font-black group-hover:text-orange-400">View Setup Guide</span>
                   <span className="text-gray-500 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
               </div>
@@ -269,13 +269,13 @@ export default function DashboardPage() {
                         <td className="px-6 py-4 font-bold text-[13px]">SAR {displayTotal}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${row.status === 'cleared' ? 'bg-green-100 text-green-700' :
-                            row.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                            row.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                             }`}>
                             {row.status}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Link href={`/api/v1/zatca/invoices/${row.id}/pdf`} title="Download PDF" className="text-gray-300 hover:text-blue-600 font-bold transition-colors">
+                          <Link href={`/api/v1/zatca/invoices/${row.id}/pdf`} title="Download PDF" className="text-gray-300 hover:text-orange-600 font-bold transition-colors">
                             PDF
                           </Link>
                         </td>

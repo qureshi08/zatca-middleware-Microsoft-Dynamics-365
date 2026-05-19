@@ -5,16 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 /**
  * INSTITUTIONAL REGISTRATION
- * Supports an optional ?intent=quickbooks query so QB-initiated
- * registrations land on the QB onboarding flow after the first sign-in
+ * Supports an optional ?intent=odoo query so Odoo-initiated
+ * registrations land on the Odoo onboarding flow after the first sign-in
  * rather than the generic dashboard.
  */
 
 function RegisterContent() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const intent = searchParams.get('intent'); // e.g. "quickbooks"
-    const isQuickbooksIntent = intent === 'quickbooks';
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         bankName: '',
@@ -46,11 +43,9 @@ function RegisterContent() {
                 return;
             }
 
-            // Forward intent to /login so the post-login redirect lands on
-            // the right destination (QB setup vs. middleware dashboard).
-            const next = isQuickbooksIntent ? '/quickbooks/setup' : '/';
-            const params = new URLSearchParams({ registered: 'true' });
-            if (next !== '/') params.set('next', next);
+            // Always forward to Odoo Settings after registration/login for this integration
+            const next = '/admin/odoo/settings';
+            const params = new URLSearchParams({ registered: 'true', next });
             router.push(`/login?${params.toString()}`);
         } catch (err: any) {
             setError('Network Protocol Error');
@@ -63,25 +58,21 @@ function RegisterContent() {
     return (
         <div className="min-h-screen bg-[#0a0a0b] flex items-center justify-center p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full opacity-20">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px]" />
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-600/20 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-600/20 rounded-full blur-[120px]" />
             </div>
 
             <div className="w-full max-w-xl relative z-10">
                 <div className="text-center mb-10">
-                    {isQuickbooksIntent && (
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-4">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            QuickBooks Integration
-                        </div>
-                    )}
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black uppercase tracking-widest mb-4">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                        Odoo Integration
+                    </div>
                     <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">
-                        {isQuickbooksIntent ? 'Register Your Business' : 'Join the Banking Cloud'}
+                        Register Your Business
                     </h1>
                     <p className="text-gray-400 text-sm">
-                        {isQuickbooksIntent
-                            ? 'Create your tenant on the ZATCA Middleware. After this you\'ll run ZATCA compliance and then connect QuickBooks.'
-                            : 'Provision your institutional node and activate ZATCA connectivity in minutes.'}
+                        Create your tenant on the ZATCA Middleware. After this you'll run ZATCA compliance and then connect Odoo.
                     </p>
                 </div>
 
@@ -102,12 +93,12 @@ function RegisterContent() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">{isQuickbooksIntent ? 'Business Name' : 'Institution Name'}</label>
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Business Name</label>
                                 <input
                                     required
                                     type="text"
-                                    placeholder={isQuickbooksIntent ? 'Your Saudi Trading Company' : 'Bank of Saudia'}
-                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Your Saudi Trading Company"
+                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                     value={formData.bankName}
                                     onChange={e => setFormData({ ...formData, bankName: e.target.value })}
                                 />
@@ -118,7 +109,7 @@ function RegisterContent() {
                                     required
                                     type="text"
                                     placeholder="1010010000"
-                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                    className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                     value={formData.taxNumber}
                                     onChange={e => setFormData({ ...formData, taxNumber: e.target.value })}
                                 />
@@ -131,7 +122,7 @@ function RegisterContent() {
                                 required
                                 type="text"
                                 placeholder="399999999900003"
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                 value={formData.vatNumber}
                                 onChange={e => setFormData({ ...formData, vatNumber: e.target.value })}
                             />
@@ -144,8 +135,8 @@ function RegisterContent() {
                             <input
                                 required
                                 type="email"
-                                placeholder="admin@bank.jo"
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                placeholder="admin@mycompany.com"
+                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                 value={formData.email}
                                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                             />
@@ -157,7 +148,7 @@ function RegisterContent() {
                                 required
                                 type="password"
                                 placeholder="••••••••"
-                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-blue-500 outline-none transition-all"
+                                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-sm focus:border-orange-500 outline-none transition-all"
                                 value={formData.password}
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                             />
@@ -165,11 +156,7 @@ function RegisterContent() {
 
                         <button
                             disabled={loading}
-                            className={`w-full h-14 text-white font-bold rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
-                                isQuickbooksIntent
-                                    ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
-                                    : 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20'
-                            }`}
+                            className="w-full h-14 text-white font-bold rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 bg-orange-600 hover:bg-orange-500 shadow-orange-500/20"
                         >
                             {loading ? 'Initializing Context...' : 'Complete Registration →'}
                         </button>

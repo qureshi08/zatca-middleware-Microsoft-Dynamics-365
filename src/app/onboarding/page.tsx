@@ -70,7 +70,7 @@ export default function OnboardingPage() {
     if (contextLoading || !activeBank) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -85,7 +85,7 @@ export default function OnboardingPage() {
             <section className="section">
                 <div className="container">
                     <header className="mb-14">
-                        <h4 className="text-blue-600 font-bold uppercase tracking-widest text-[11px] mb-4">Lifecycle Management</h4>
+                        <h4 className="text-orange-600 font-bold uppercase tracking-widest text-[11px] mb-4">Lifecycle Management</h4>
                         <h1 className="h1">Unit Activation</h1>
                         <p className="body-text max-w-2xl">Acquire and activate mandatory ZATCA cryptographic identities for your electronic generation solution unit.</p>
                     </header>
@@ -96,7 +96,7 @@ export default function OnboardingPage() {
                             <div className={`card p-10 border-none bg-white transition-all ${currentStepNum >= 1 ? 'shadow-2xl' : 'opacity-40 grayscale'}`}>
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="flex-1">
-                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 1 ? 'bg-green-100 text-green-700' : 'bg-blue-600 text-white shadow-xl shadow-blue-500/30'}`}>
+                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 1 ? 'bg-green-100 text-green-700' : 'bg-orange-600 text-white shadow-xl shadow-orange-500/30'}`}>
                                             {currentStepNum > 1 ? '✓ Complete' : 'Active Phase'}
                                         </span>
                                         <h2 className="h2 mt-4">01. Cryptographic Handshake</h2>
@@ -112,12 +112,12 @@ export default function OnboardingPage() {
                                                 type="text"
                                                 value={otp}
                                                 onChange={e => setOtp(e.target.value)}
-                                                className="form-input text-center text-2xl font-black tracking-widest text-blue-600 border-none shadow-2xl max-w-[300px]"
+                                                className="form-input text-center text-2xl font-black tracking-widest text-orange-600 border-none shadow-2xl max-w-[300px]"
                                                 placeholder="123456"
                                             />
                                             <p className="text-[10px] font-bold text-gray-400 mt-4 text-center">Open your FATOORA portal to retrieve the one-time activation code.</p>
                                         </div>
-                                        <button onClick={handleStart} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20">
+                                        <button onClick={handleStart} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20">
                                             {loading ? 'Initializing Protocol...' : 'Launch Registration Initializer'}
                                         </button>
                                     </div>
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
                             <div className={`card p-10 border-none bg-white transition-all ${currentStepNum >= 2 ? 'shadow-2xl' : 'opacity-40 grayscale pointer-events-none'}`}>
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="flex-1">
-                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 2 ? 'bg-green-100 text-green-700' : currentStepNum === 2 ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30' : 'bg-gray-100 text-gray-400'}`}>
+                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 2 ? 'bg-green-100 text-green-700' : currentStepNum === 2 ? 'bg-orange-600 text-white shadow-xl shadow-orange-500/30' : 'bg-gray-100 text-gray-400'}`}>
                                             {currentStepNum > 2 ? '✓ Cleared' : currentStepNum === 2 ? 'In Progress' : 'Locked'}
                                         </span>
                                         <h2 className="h2 mt-4">02. Laboratory Scenarios</h2>
@@ -151,13 +151,13 @@ export default function OnboardingPage() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 {['Standard Invoice', 'Simplified Invoice', 'B2B Debit Note', 'B2B Credit Note', 'Simplified Credit', 'Simplified Debit'].map(item => (
                                                     <div key={item} className="flex items-center gap-3 small-text font-black text-gray-400 uppercase tracking-tight">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
                                                         {item}
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-                                        <button onClick={handleCompliance} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20">
+                                        <button onClick={handleCompliance} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20">
                                             {loading ? 'Transmitting Suite...' : 'Transmit Test Portfolio'}
                                         </button>
                                     </div>
@@ -179,7 +179,7 @@ export default function OnboardingPage() {
                             <div className={`card p-10 border-none bg-white transition-all ${currentStepNum >= 3 ? 'shadow-2xl' : 'opacity-40 grayscale pointer-events-none'}`}>
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="flex-1">
-                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 3 ? 'bg-green-500 text-white' : currentStepNum === 3 ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30' : 'bg-gray-100 text-gray-400'}`}>
+                                        <span className={`small-text font-black px-4 py-1 rounded-full mb-3 inline-block ${currentStepNum > 3 ? 'bg-green-500 text-white' : currentStepNum === 3 ? 'bg-orange-600 text-white shadow-xl shadow-orange-500/30' : 'bg-gray-100 text-gray-400'}`}>
                                             {currentStepNum > 3 ? 'LIVE' : currentStepNum === 3 ? 'Final State' : 'Locked'}
                                         </span>
                                         <h2 className="h2 mt-4">03. Production Release</h2>
@@ -188,7 +188,7 @@ export default function OnboardingPage() {
                                 </div>
 
                                 {currentStepNum === 3 && (
-                                    <button onClick={handleFinalize} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20">
+                                    <button onClick={handleFinalize} disabled={loading} className="button w-full py-5 text-sm font-black uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20">
                                         {loading ? 'Finalizing...' : 'Request Production Certificates'}
                                     </button>
                                 )}
@@ -201,16 +201,16 @@ export default function OnboardingPage() {
                                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Asset Context</h4>
                                 <div className="space-y-8">
                                     <div className="group">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-blue-600">Gateway</p>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600">Gateway</p>
                                         <p className="text-sm font-black text-black">ZATCA SANDBOX V3</p>
                                     </div>
                                     <div className="group">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-blue-600">Institution</p>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600">Institution</p>
                                         <p className="text-sm font-black text-black">{activeBank.name}</p>
                                     </div>
                                     <div className="group">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-blue-600">Unit ID</p>
-                                        <code className="text-[11px] font-mono font-black text-blue-600 uppercase mt-1 block">{activeBank.id}</code>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 group-hover:text-orange-600">Unit ID</p>
+                                        <code className="text-[11px] font-mono font-black text-orange-600 uppercase mt-1 block">{activeBank.id}</code>
                                     </div>
                                 </div>
                                 <div className="mt-12 pt-8 border-t border-gray-100">
@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                             <Link href="/" className="card bg-black p-8 text-white hover:translate-y-[-2px] flex items-center justify-between group transition-all duration-300">
                                 <div>
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em] mb-1">Return to</p>
-                                    <p className="text-lg font-black tracking-tighter group-hover:text-blue-400 transition-colors">Mission Dashboard</p>
+                                    <p className="text-lg font-black tracking-tighter group-hover:text-orange-400 transition-colors">Mission Dashboard</p>
                                 </div>
                                 <span className="text-2xl opacity-40 group-hover:translate-x-2 group-hover:opacity-100 transition-all">→</span>
                             </Link>

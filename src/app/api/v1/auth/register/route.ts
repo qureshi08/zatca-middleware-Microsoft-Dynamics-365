@@ -48,28 +48,66 @@ export async function POST(req: NextRequest) {
 
         if (orgError) throw new Error(`Vault Insertion Failed: ${orgError.message}`);
 
-        // 4. Provision the Admin (Custom bank_users table)
-        // Note: Using SHA-256 for password hashing for this custom implementation
+        // 4. Provision the Admin (Local JSON fallback / primary store to avoid missing table schema issue)
         const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
+        
+        const userId = crypto.randomUUID();
+        const newUser = {
+            id: userId,
+            organization_id: org.id,
+            email: email,
+            password_hash: passwordHash,
+            full_name: `${bankName} Administrator`,
+            role: 'Admin',
+            user_status: 'active',
+            password_history: [passwordHash],
+            password_changed_at: new Date().toISOString(),
+            password_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+        };
 
-        const { error: userError } = await supabaseAdmin
-            .from('bank_users')
-            .insert({
-                organization_id: org.id,
-                email: email,
-                password_hash: passwordHash,
-                full_name: `${bankName} Administrator`,
-                role: 'Admin',
-                user_status: 'active',
-                password_history: [passwordHash],
-                password_changed_at: new Date().toISOString(),
-                password_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-            });
+        try {
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const usersFilePath = path.join(process.cwd(), 'zatca-users.json');
+            
+            let users = [];
+            try {
+                const fileData = await fs.readFile(usersFilePath, 'utf-8');
+                users = JSON.parse(fileData);
+            } catch (readError) {
+                users = [];
+            }
+            
+            // Double check email uniqueness in local store
+            if (users.some((u: any) => u.email.toLowerCase() === email.toLowerCase())) {
+                await supabaseAdmin.from('organizations').delete().eq('id', org.id);
+                return NextResponse.json({ error: 'Registration Conflict', details: 'This email is already registered.' }, { status: 409 });
+            }
+            
+            users.push(newUser);
+            await fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), 'utf-8');
+        } catch (fileError: any) {
+            // Fallback: try inserting into bank_users table in case it was created
+            const { error: userError } = await supabaseAdmin
+                .from('bank_users')
+                .insert({
+                    organization_id: org.id,
+                    email: email,
+                    password_hash: passwordHash,
+                    full_name: `${bankName} Administrator`,
+                    role: 'Admin',
+                    user_status: 'active',
+                    password_history: [passwordHash],
+                    password_changed_at: new Date().toISOString(),
+                    password_expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+                });
 
-        if (userError) {
-            // Rollback Org
-            await supabaseAdmin.from('organizations').delete().eq('id', org.id);
-            throw new Error(`Bank User Registry Failed: ${userError.message}. Did you run the SQL script?`);
+            if (userError) {
+                // Rollback Org
+                await supabaseAdmin.from('organizations').delete().eq('id', org.id);
+                throw new Error(`Bank User Registry Failed: Local file write failed (${fileError.message}) and Database table insertion failed (${userError.message}).`);
+            }
         }
 
         // 5. Issue the Initial Master API Key

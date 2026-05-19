@@ -13,7 +13,7 @@
   --text-primary: #1d1d1f;
   --text-secondary: #6e6e73;
   --border: #e5e5e7;
-  --accent: #0071e3;
+  --accent: #ea580c;
   --bg-sidebar: #fbfbfd;
 
   /* ── Spacing (4px/8px Grid) ── */
@@ -259,7 +259,7 @@ td {
 
 .input-pro:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.08);
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.08);
 }
 
 /* ── Utilities ── */

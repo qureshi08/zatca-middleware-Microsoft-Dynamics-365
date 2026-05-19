@@ -19,19 +19,52 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing Credentials' }, { status: 400 });
         }
 
-        // 1. Fetch User from Registry
-        const { data: user, error: userError } = await supabaseAdmin
-            .from('bank_users')
-            .select('*, organizations(*)')
-            .eq('email', email)
-            .single();
+        // 1. Fetch User from Registry (Check local JSON first, then fall back to Supabase bank_users table)
+        let user: any = null;
+        const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
 
-        if (userError || !user) {
-            return NextResponse.json({ error: 'Unauthorized', details: 'Invalid institutional credentials' }, { status: 401 });
+        try {
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const usersFilePath = path.join(process.cwd(), 'zatca-users.json');
+            const fileData = await fs.readFile(usersFilePath, 'utf-8');
+            const users = JSON.parse(fileData);
+            const localUser = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+            
+            if (localUser) {
+                // Fetch the organization from Supabase
+                const { data: org, error: orgError } = await supabaseAdmin
+                    .from('organizations')
+                    .select('*')
+                    .eq('id', localUser.organization_id)
+                    .single();
+                
+                if (org && !orgError) {
+                    user = {
+                        ...localUser,
+                        organizations: org
+                    };
+                }
+            }
+        } catch (e) {
+            console.log('[LOGIN]: Local JSON lookup bypassed or failed, trying database table');
+        }
+
+        if (!user) {
+            // Fallback: Query bank_users table
+            const { data: dbUser, error: userError } = await supabaseAdmin
+                .from('bank_users')
+                .select('*, organizations(*)')
+                .eq('email', email)
+                .single();
+
+            if (userError || !dbUser) {
+                return NextResponse.json({ error: 'Unauthorized', details: 'Invalid institutional credentials' }, { status: 401 });
+            }
+            user = dbUser;
         }
 
         // 2. Verify Hash
-        const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
         if (user.password_hash !== passwordHash) {
             return NextResponse.json({ error: 'Unauthorized', details: 'Invalid institutional credentials' }, { status: 401 });
         }

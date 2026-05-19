@@ -1,9 +1,9 @@
-# 🏦 ZATCA Z3C Integration Gateway (Bank of Jordan)
+# 🏦 ZATCA-middleware-odoo
 
 [![ZATCA Phase 2](https://img.shields.io/badge/ZATCA-Phase%202--Compliant-blue)](https://zatca.gov.sa/)
 [![Status](https://img.shields.io/badge/Status-Production--Ready-green)]()
 
-The **Z3C (ZATCA Core Connector)** is a production-grade integration hub for Bank of Jordan's ZATCA (FATOORA) compliance. It handles the complete onboarding lifecycle, cryptographic signing, and UBL 2.1 XML generation for Phase 2.
+The **ZATCA-middleware-odoo** is a production-grade integration hub for Odoo ERP ZATCA (FATOORA) compliance. It handles the complete onboarding lifecycle, cryptographic signing, and UBL 2.1 XML generation for Phase 2.
 
 ---
 
