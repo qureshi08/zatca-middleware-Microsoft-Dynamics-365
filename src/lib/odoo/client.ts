@@ -422,6 +422,17 @@ export class OdooClient {
         // Attach signed XML and compliance PDF directly to the invoice record in Odoo
         if ((data.status === 'cleared' || data.status === 'submitted') && (data.pdfBase64 || data.xmlBase64)) {
             try {
+                // Determine whether Odoo uses 'raw' or 'datas' for ir.attachment binary content
+                let dataField = 'datas';
+                try {
+                    const fields = await this.execute('ir.attachment', 'fields_get', [[], ['type']]);
+                    if (fields && 'raw' in fields) {
+                        dataField = 'raw';
+                    }
+                } catch (e: any) {
+                    console.warn('[Odoo] fields_get detection failed, default to datas:', e.message);
+                }
+
                 // Find existing attachments for this invoice to prevent duplicates
                 const existingAttachments = await this.execute('ir.attachment', 'search', [
                     [
@@ -440,24 +451,24 @@ export class OdooClient {
                     await this.execute('ir.attachment', 'create', [{
                         name: `ZATCA_Cleared_${invoiceId}.pdf`,
                         type: 'binary',
-                        datas: data.pdfBase64,
+                        [dataField]: data.pdfBase64,
                         res_model: 'account.move',
                         res_id: invoiceId,
                         mimetype: 'application/pdf'
                     }]);
-                    console.log(`[Odoo] Created PDF attachment ZATCA_Cleared_${invoiceId}.pdf for invoice ${invoiceId}`);
+                    console.log(`[Odoo] Created PDF attachment ZATCA_Cleared_${invoiceId}.pdf for invoice ${invoiceId} using field '${dataField}'`);
                 }
 
                 if (data.xmlBase64) {
                     await this.execute('ir.attachment', 'create', [{
                         name: `ZATCA_Signed_${invoiceId}.xml`,
                         type: 'binary',
-                        datas: data.xmlBase64,
+                        [dataField]: data.xmlBase64,
                         res_model: 'account.move',
                         res_id: invoiceId,
                         mimetype: 'application/xml'
                     }]);
-                    console.log(`[Odoo] Created XML attachment ZATCA_Signed_${invoiceId}.xml for invoice ${invoiceId}`);
+                    console.log(`[Odoo] Created XML attachment ZATCA_Signed_${invoiceId}.xml for invoice ${invoiceId} using field '${dataField}'`);
                 }
             } catch (attachErr: any) {
                 console.warn('[Odoo] Failed to manage attachments:', attachErr.message);
