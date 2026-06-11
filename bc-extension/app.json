@@ -1,0 +1,29 @@
+{
+  "id": "1090b548-cbad-471c-a6d6-536373a19600",
+  "name": "ZATCA Compliance Fields",
+  "publisher": "ZATCA Middleware",
+  "version": "1.0.0.0",
+  "brief": "Adds ZATCA e-invoicing compliance fields to posted sales documents.",
+  "description": "Surfaces the ZATCA clearance UUID, status, cleared timestamp and last error on posted Sales Invoices and Credit Memos, and exposes them through a custom API for the ZATCA middleware to write back.",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "22.0.0.0",
+  "idRanges": [
+    {
+      "from": 50100,
+      "to": 50199
+    }
+  ],
+  "contextSensitiveHelpUrl": "",
+  "showMyCode": true,
+  "runtime": "12.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

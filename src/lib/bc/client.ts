@@ -42,6 +42,11 @@ export class BusinessCentralClient {
         return `${this.apiHost}/v2.0/${this.tenantId}/${this.environment}/api/v2.0`;
     }
 
+    /** Base URL for the custom ZATCA Compliance API exposed by the AL extension. */
+    private get zatcaApiBase(): string {
+        return `${this.apiHost}/v2.0/${this.tenantId}/${this.environment}/api/zatca/compliance/v1.0`;
+    }
+
     /** True when this looks like a local mock/sandbox config (no real Azure secret). */
     private get isMock(): boolean {
         return (
@@ -306,10 +311,12 @@ export class BusinessCentralClient {
     /**
      * Writes ZATCA compliance results back to the Business Central document.
      *
-     * BC custom fields require an AL extension, so this writes back best-effort:
-     *   1. Posts the QR/UUID/status as a comment line on the document (sales*Comments API).
+     * Writeback is best-effort and degrades gracefully:
+     *   1. PATCHes the native ZATCA fields via the custom "zatca/compliance" API
+     *      (provided by the ZATCA Compliance AL extension, in /bc-extension).
      *   2. Uploads the signed XML and compliance PDF as document attachments.
-     * Each step degrades gracefully — a failure is logged but does not abort the others.
+     *   3. If the extension/custom API is not installed, falls back to a status
+     *      comment line on the document so nothing is silently lost.
      */
     async writebackStatus(
         documentId: string,
@@ -342,7 +349,22 @@ export class BusinessCentralClient {
                   (data.originalInvoiceId ? ` | Original: ${data.originalInvoiceId}` : '')
                 : `ZATCA submission failed: ${data.error || 'unknown error'}`;
 
-        // 1. Attach signed XML + compliance PDF to the BC document.
+        // 1. PATCH the native ZATCA fields via the custom API (AL extension).
+        let nativeFieldsWritten = false;
+        try {
+            await this.patchZatcaFields(documentId, kind, {
+                zatcaUuid: data.uuid || '',
+                zatcaStatus: this.mapZatcaStatus(data.status),
+                zatcaClearedAt: (data.status === 'cleared' || data.status === 'submitted') ? new Date().toISOString() : null,
+                zatcaError: data.status === 'failed' ? (data.error || 'unknown error').slice(0, 250) : '',
+            });
+            nativeFieldsWritten = true;
+        } catch (patchErr: any) {
+            // Extension not installed (404) or field/API mismatch — fall back to a comment below.
+            console.warn('[BC] ZATCA custom API not available, will fall back to comment:', patchErr.message);
+        }
+
+        // 2. Attach signed XML + compliance PDF to the BC document.
         if ((data.status === 'cleared' || data.status === 'submitted') && (data.pdfBase64 || data.xmlBase64)) {
             try {
                 if (data.pdfBase64) {
@@ -356,17 +378,56 @@ export class BusinessCentralClient {
             }
         }
 
-        // 2. Record a status comment line on the document.
-        try {
-            const commentsEntity = kind === 'creditMemo' ? 'salesCreditMemos' : 'salesInvoices';
-            await this.apiRequest('POST', `${commentsEntity}(${documentId})/comments`, {
-                comment: summary.slice(0, 250),
-            });
-        } catch (commentErr: any) {
-            console.warn('[BC] Failed to post status comment:', commentErr.message);
+        // 3. Only post a status comment when native fields could not be written.
+        if (!nativeFieldsWritten) {
+            try {
+                const commentsEntity = kind === 'creditMemo' ? 'salesCreditMemos' : 'salesInvoices';
+                await this.apiRequest('POST', `${commentsEntity}(${documentId})/comments`, {
+                    comment: summary.slice(0, 250),
+                });
+            } catch (commentErr: any) {
+                console.warn('[BC] Failed to post status comment:', commentErr.message);
+            }
         }
 
         return true;
+    }
+
+    /** Maps the middleware status to the AL "ZATCA Status" enum member name. */
+    private mapZatcaStatus(status: 'cleared' | 'failed' | 'submitted'): string {
+        if (status === 'cleared') return 'Cleared';
+        if (status === 'submitted') return 'Submitted';
+        return 'Failed';
+    }
+
+    /**
+     * PATCHes the native ZATCA fields exposed by the ZATCA Compliance AL extension's
+     * custom API page. Throws if the extension/API is not present so the caller can fall back.
+     */
+    private async patchZatcaFields(
+        documentId: string,
+        kind: 'invoice' | 'creditMemo',
+        fields: { zatcaUuid: string; zatcaStatus: string; zatcaClearedAt: string | null; zatcaError: string }
+    ): Promise<void> {
+        const entitySet = kind === 'creditMemo' ? 'zatcaSalesCreditMemos' : 'zatcaSalesInvoices';
+        const token = await this.authenticate();
+        const url = `${this.zatcaApiBase}/companies(${this.companyId})/${entitySet}(${documentId})`;
+
+        const res = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'If-Match': '*',
+            },
+            body: JSON.stringify(fields),
+            cache: 'no-store',
+        });
+
+        if (!res.ok) {
+            const t = await res.text().catch(() => '');
+            throw new Error(`ZATCA field PATCH failed: ${res.status} ${t}`.trim());
+        }
     }
 
     /**
