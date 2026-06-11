@@ -2,43 +2,42 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/auth-service';
 import { generateInvoiceAction } from '@/lib/zatca/actions';
 import { supabaseAdmin } from '@/lib/supabase';
-import { OdooClient } from '@/lib/odoo/client';
+import { BusinessCentralClient } from '@/lib/bc/client';
 import { generateInvoicePDF } from '@/lib/zatca/pdf/generator';
 
 /**
- * POST /api/odoo/webhook
+ * POST /api/bc/webhook
  *
- * Odoo Integration Webhook.
- * Authenticates using `x-api-key`.
+ * Microsoft Dynamics 365 Business Central integration webhook.
+ * Authenticates using `x-api-key` (header or ?apiKey=).
  *
  * Request body:
- * 1. Push Mode (Full Payload):
+ * 1. Push Mode (Full Payload) — caller already has the mapped invoice:
  * {
  *   "action": "push",
  *   "type": "standard" | "simplified",
  *   "documentType": "388" | "381" | "383",
- *   "invoiceId": "INV-1234",
+ *   "invoiceId": "SINV-2026-0001",
  *   "buyer": { ... },
  *   "items": [ ... ],
- *   "originalInvoiceId": "INV-1233",
+ *   "originalInvoiceId": "SINV-2026-0000",
  *   "creditReason": "Return"
  * }
  *
- * 2. Pull & Writeback Mode (Odoo ID only):
+ * 2. Pull & Writeback Mode (BC document GUID only):
  * {
  *   "action": "pull",
- *   "odooInvoiceId": 12
+ *   "documentId": "<bc-systemId-guid>",
+ *   "documentKind": "invoice" | "creditMemo"   // optional, defaults to "invoice"
  * }
  */
 export async function POST(req: NextRequest) {
-    // Check both header and URL query parameters for the API key
     const apiKey = req.headers.get('x-api-key') || req.nextUrl.searchParams.get('apiKey');
-    
+
     if (!apiKey) {
         return NextResponse.json({ error: 'Missing API Key (header x-api-key or ?apiKey=)' }, { status: 401 });
     }
 
-    // 1. Authenticate Organization
     const organization = await AuthService.validateAPIKey(apiKey) as any;
     if (!organization) {
         return NextResponse.json({ error: 'Invalid or revoked API Key' }, { status: 401 });
@@ -46,9 +45,9 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        
-        // Auto-detect Odoo native webhook payload
-        const action = body.action || (body._model === 'account.move' ? 'pull' : 'push');
+
+        // Default to pull when a BC document id is present, otherwise push.
+        const action = body.action || (body.documentId || body.systemId ? 'pull' : 'push');
 
         // ==========================================
         // FLOW A: PUSH MODE (Full Payload)
@@ -57,14 +56,12 @@ export async function POST(req: NextRequest) {
             const isStandard = body.type === 'standard';
             if (!body.type || !body.invoiceId || !body.items?.length || (isStandard && !body.buyer)) {
                 return NextResponse.json({
-                    error: `Missing required fields: type, invoiceId, items ${isStandard ? ', buyer' : ''}`
+                    error: `Missing required fields: type, invoiceId, items${isStandard ? ', buyer' : ''}`
                 }, { status: 400 });
             }
 
-            // 1. Process invoice through core ZATCA logic
             const result = await generateInvoiceAction(body, organization.id);
 
-            // 2. Log transaction
             await supabaseAdmin.from('transaction_logs').insert({
                 organization_id: organization.id,
                 request_type: body.type === 'simplified' ? 'reporting' : 'clearance',
@@ -74,9 +71,8 @@ export async function POST(req: NextRequest) {
                 response_payload: { ...result, body }
             });
 
-            // 3. Persist invoice to dashboard
             if (result.success && result.data) {
-                const invoiceStatus = result.data.status === 'CLEARED' ? 'cleared' : 
+                const invoiceStatus = result.data.status === 'CLEARED' ? 'cleared' :
                                       result.data.status === 'REPORTED' ? 'reported' : 'cleared';
                 const items = body.items || [];
                 const subtotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice), 0);
@@ -142,71 +138,71 @@ export async function POST(req: NextRequest) {
         // FLOW B: PULL & WRITEBACK MODE
         // ==========================================
         if (action === 'pull') {
-            // Support both custom python script payload AND native Odoo webhook payload
-            const odooInvoiceId = body.odooInvoiceId || body._id;
-            
-            if (!odooInvoiceId) {
-                return NextResponse.json({ error: 'Missing odooInvoiceId or _id for pull action' }, { status: 400 });
+            const documentId = body.documentId || body.systemId;
+            const documentKind: 'invoice' | 'creditMemo' =
+                body.documentKind === 'creditMemo' ? 'creditMemo' : 'invoice';
+
+            if (!documentId) {
+                return NextResponse.json({ error: 'Missing documentId for pull action' }, { status: 400 });
             }
 
-            // 1. Fetch Odoo Connection settings from the database
+            // 1. Load BC connection settings.
             const { data: config, error: configError } = await supabaseAdmin
-
-                .from('odoo_config')
+                .from('bc_config')
                 .select('*')
                 .eq('organization_id', organization.id)
                 .maybeSingle();
 
             if (configError || !config) {
                 return NextResponse.json({
-                    error: 'Odoo integration is not configured. Please complete setup in the dashboard.'
+                    error: 'Business Central integration is not configured. Please complete setup in the dashboard.'
                 }, { status: 400 });
             }
 
-            // 2. Initialize Odoo Client
-            const odoo = new OdooClient({
-                odooUrl: config.odoo_url,
-                odooDb: config.odoo_db,
-                odooUsername: config.odoo_username,
-                odooPassword: config.odoo_password
+            // 2. Initialize BC client.
+            const bc = new BusinessCentralClient({
+                tenantId: config.bc_tenant_id,
+                environment: config.bc_environment,
+                companyId: config.bc_company_id,
+                clientId: config.bc_client_id,
+                clientSecret: config.bc_client_secret,
+                apiBaseUrl: config.bc_api_base_url || undefined,
             });
 
-            // 3. Fetch invoice details from Odoo
-            let odooInvoice;
+            // 3. Fetch and map the document from BC.
+            let bcInvoice;
             try {
-                odooInvoice = await odoo.getInvoice(Number(odooInvoiceId));
+                bcInvoice = await bc.getInvoice(String(documentId), documentKind);
             } catch (err: any) {
                 return NextResponse.json({
-                    error: `Failed to fetch invoice from Odoo: ${err.message}`
+                    error: `Failed to fetch document from Business Central: ${err.message}`
                 }, { status: 422 });
             }
 
-            // 4. Submit invoice to ZATCA
-            const result = await generateInvoiceAction(odooInvoice, organization.id);
+            // 4. Submit to ZATCA.
+            const result = await generateInvoiceAction(bcInvoice, organization.id);
 
-            // Log results
             await supabaseAdmin.from('transaction_logs').insert({
                 organization_id: organization.id,
-                request_type: odooInvoice.type === 'simplified' ? 'reporting' : 'clearance',
-                invoice_number: odooInvoice.invoiceId,
+                request_type: bcInvoice.type === 'simplified' ? 'reporting' : 'clearance',
+                invoice_number: bcInvoice.invoiceId,
                 invoice_hash: result.success ? (result.data?.hash || result.data?.uuid) : null,
                 status: result.success ? 'success' : 'failure',
-                response_payload: { ...result, body: odooInvoice }
+                response_payload: { ...result, body: bcInvoice }
             });
 
-            // Persist to dashboard
             if (result.success && result.data) {
-                const invoiceStatus = result.data.status === 'CLEARED' ? 'cleared' : 
+                const invoiceStatus = result.data.status === 'CLEARED' ? 'cleared' :
                                       result.data.status === 'REPORTED' ? 'reported' : 'cleared';
-                const items = odooInvoice.items || [];
+                const items = bcInvoice.items || [];
                 const subtotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice), 0);
                 const vatTotal = items.reduce((acc: number, item: any) => acc + (item.quantity * item.unitPrice * (item.vatRate || 15) / 100), 0);
 
                 await supabaseAdmin.from('invoices').upsert({
                     organization_id: organization.id,
-                    invoice_number: odooInvoice.invoiceId,
-                    invoice_type: odooInvoice.type,
-                    document_type: odooInvoice.documentType || '388',
+                    invoice_number: bcInvoice.invoiceId,
+                    invoice_type: bcInvoice.type,
+                    document_type: bcInvoice.documentType || '388',
                     status: invoiceStatus,
                     total_amount: subtotal + vatTotal,
                     zatca_status: result.data.status,
@@ -214,7 +210,7 @@ export async function POST(req: NextRequest) {
                     qr_code: result.data.qrCode,
                     xml: result.data.xml,
                     payload: {
-                        ...odooInvoice,
+                        ...bcInvoice,
                         total: subtotal + vatTotal,
                         vatAmount: vatTotal,
                         subtotal,
@@ -229,22 +225,21 @@ export async function POST(req: NextRequest) {
                 });
             }
 
-            // 5. Write back results to Odoo
+            // 5. Write results back to BC.
             try {
                 if (result.success && result.data) {
-                    // Generate PDF compliance report with embedded QR code
                     let pdfBase64: string | undefined;
                     try {
                         const pdfBuffer = await generateInvoicePDF({
                             invoice: {
-                                invoice_number: odooInvoice.invoiceId,
-                                invoice_type: odooInvoice.type,
+                                invoice_number: bcInvoice.invoiceId,
+                                invoice_type: bcInvoice.type,
                                 status: (result.data.status === 'CLEARED' || result.data.status === 'REPORTED') ? 'cleared' : 'submitted',
                                 created_at: new Date().toISOString(),
                                 payload: {
-                                    ...odooInvoice,
+                                    ...bcInvoice,
                                     seller: result.data.seller,
-                                    items: odooInvoice.items || [],
+                                    items: bcInvoice.items || [],
                                 }
                             },
                             qrCode: result.data.qrCode,
@@ -252,30 +247,30 @@ export async function POST(req: NextRequest) {
                         });
                         pdfBase64 = pdfBuffer.toString('base64');
                     } catch (pdfErr: any) {
-                        console.error(`[Webhook PDF Gen Error] Invoice ID ${odooInvoiceId}:`, pdfErr.message);
+                        console.error(`[BC Webhook PDF Gen Error] Document ${documentId}:`, pdfErr.message);
                     }
 
                     const xmlBase64 = result.data.xml ? Buffer.from(result.data.xml).toString('base64') : undefined;
 
-                    await odoo.writebackStatus(Number(odooInvoiceId), {
+                    await bc.writebackStatus(String(documentId), documentKind, {
                         status: (result.data.status === 'CLEARED' || result.data.status === 'REPORTED') ? 'cleared' : 'submitted',
                         uuid: result.data.uuid,
                         qrCode: result.data.qrCode,
-                        xml: result.data.xml,
                         pdfBase64,
                         xmlBase64,
-                        documentType: odooInvoice.documentType,
-                        originalInvoiceId: odooInvoice.originalInvoiceId
+                        documentType: bcInvoice.documentType,
+                        originalInvoiceId: bcInvoice.originalInvoiceId,
+                        invoiceNumber: bcInvoice.invoiceId,
                     });
                 } else {
-                    await odoo.writebackStatus(Number(odooInvoiceId), {
+                    await bc.writebackStatus(String(documentId), documentKind, {
                         status: 'failed',
-                        error: result.error || 'ZATCA Clearance failed'
+                        error: result.error || 'ZATCA Clearance failed',
+                        invoiceNumber: bcInvoice.invoiceId,
                     });
                 }
             } catch (writeError: any) {
-                console.error(`[Odoo Writeback Error] Invoice ID ${odooInvoiceId}:`, writeError.message);
-                // Return success anyway, since ZATCA cleared it, but note the writeback failure
+                console.error(`[BC Writeback Error] Document ${documentId}:`, writeError.message);
                 return NextResponse.json({
                     success: result.success,
                     uuid: result.data?.uuid,
@@ -300,13 +295,13 @@ export async function POST(req: NextRequest) {
                 invoiceId: data.id,
                 uuid: data.uuid,
                 zatcaStatus: data.status,
-                documentType: odooInvoice.documentType,
+                documentType: bcInvoice.documentType,
                 documentTypeLabel:
-                    odooInvoice.documentType === '381' ? 'Credit Note' :
-                    odooInvoice.documentType === '383' ? 'Debit Note' :
+                    bcInvoice.documentType === '381' ? 'Credit Note' :
+                    bcInvoice.documentType === '383' ? 'Debit Note' :
                     'Tax Invoice',
-                invoiceType: odooInvoice.type,
-                originalInvoiceId: odooInvoice.originalInvoiceId || null,
+                invoiceType: bcInvoice.type,
+                originalInvoiceId: bcInvoice.originalInvoiceId || null,
                 writebackSuccess: true,
                 validationMessages: data.validationMessages ?? [],
                 qrCode: data.qrCode,

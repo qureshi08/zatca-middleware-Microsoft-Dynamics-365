@@ -80,14 +80,16 @@ CREATE TABLE IF NOT EXISTS transaction_logs (
 
 CREATE INDEX IF NOT EXISTS idx_logs_org_date ON transaction_logs (organization_id, created_at DESC);
 
--- 6. ODOO ERP INTEGRATION SETTINGS
-CREATE TABLE IF NOT EXISTS odoo_config (
+-- 6. MICROSOFT DYNAMICS 365 BUSINESS CENTRAL INTEGRATION SETTINGS
+CREATE TABLE IF NOT EXISTS bc_config (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE UNIQUE,
-    odoo_url TEXT NOT NULL,
-    odoo_db TEXT NOT NULL,
-    odoo_username TEXT NOT NULL,
-    odoo_password TEXT NOT NULL,
+    bc_tenant_id TEXT NOT NULL,          -- Microsoft Entra (Azure AD) tenant ID
+    bc_environment TEXT NOT NULL DEFAULT 'Production',
+    bc_company_id TEXT NOT NULL,         -- Business Central Company GUID
+    bc_client_id TEXT NOT NULL,          -- Azure App Registration (client) ID
+    bc_client_secret TEXT NOT NULL,      -- Azure App Registration client secret value
+    bc_api_base_url TEXT,                -- optional override for sovereign / on-prem endpoints
     auto_submit BOOLEAN NOT NULL DEFAULT TRUE,
     status TEXT NOT NULL DEFAULT 'disconnected',
     last_sync TIMESTAMPTZ,
